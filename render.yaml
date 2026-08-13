@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: resume-job-finder-api
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.2"
+      - key: COOKIE_SECURE
+        value: "true"
+      # Set these in the Render dashboard (sync: false = secret):
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COSTLY_MODEL
+        value: gpt-4o
+      - key: CHEAP_MODEL
+        value: gpt-4o-mini
+      - key: SERPER_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
