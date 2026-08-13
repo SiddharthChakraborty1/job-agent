@@ -53,6 +53,8 @@ Ensure `render.yaml` is in the repo root.
 | `FRONTEND_URL` | `https://YOUR-APP.vercel.app` (update after Vercel deploy) |
 | `COOKIE_SECURE` | `true` |
 | `JWT_EXPIRE_MINUTES` | `60` (optional) |
+| `RESUME_UPLOAD_LIMIT` | `5` (optional; max uploads per user per window) |
+| `RESUME_UPLOAD_WINDOW_SECONDS` | `3600` (optional; 1 hour) |
 
 `FRONTEND_URL` must match your Vercel URL **exactly** (no trailing slash).  
 If you add a custom domain later, update this and redeploy Render.
@@ -89,6 +91,8 @@ Test: open `https://YOUR-API.onrender.com/health` → should return `{"status":"
 | `VITE_API_URL` | `https://YOUR-API.onrender.com` (no trailing slash) |
 
 Apply to **Production**, **Preview**, and **Development** if you use Vercel dev.
+
+No extra Vercel env vars are needed for resume upload rate limiting — that lives on the backend.
 
 ### 3. Deploy
 

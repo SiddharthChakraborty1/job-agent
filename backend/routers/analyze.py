@@ -3,12 +3,14 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 
+from config import settings
 from dependencies.auth import get_current_user
 from models.auth import User
 from services.pipeline import run_pipeline
+from services.rate_limit import retry_message, upload_limiter
 from services.resume_parser import extract_text
 
 logger = logging.getLogger(__name__)
@@ -25,7 +27,23 @@ def _sse(event: str, data: dict) -> str:
 
 
 @router.post("/analyze")
-async def analyze(file: UploadFile, _user: User = Depends(get_current_user)):
+async def analyze(file: UploadFile, user: User = Depends(get_current_user)):
+    allowed, retry_after = upload_limiter.hit(
+        user.sub,
+        settings.resume_upload_limit,
+        settings.resume_upload_window_seconds,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=retry_message(
+                retry_after,
+                settings.resume_upload_limit,
+                settings.resume_upload_window_seconds,
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     # Validate extension and/or MIME type
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ACCEPTED_EXTENSIONS and file.content_type not in ACCEPTED_MIME:

@@ -11,6 +11,7 @@ from models.schemas import PipelineResponse, ValidatedJobResult
 from models.auth import User
 from main import app
 from services.auth import COOKIE_NAME, create_access_token
+from services.rate_limit import upload_limiter
 
 
 def _parse_sse(raw: str) -> list[tuple[str, str]]:
@@ -29,6 +30,13 @@ def _parse_sse(raw: str) -> list[tuple[str, str]]:
         if data:
             frames.append((event_type, data))
     return frames
+
+
+@pytest.fixture(autouse=True)
+def _reset_upload_limiter():
+    upload_limiter.reset()
+    yield
+    upload_limiter.reset()
 
 
 @pytest_asyncio.fixture
@@ -147,3 +155,37 @@ async def test_happy_path_stubbed_pipeline(authed_client: AsyncClient):
     done_data = next(d for e, d in frames if e == "done")
     assert "Backend Engineer" in done_data
     assert "Midlevel search failed" in done_data
+
+
+@pytest.mark.asyncio
+async def test_analyze_rate_limit_returns_429(authed_client: AsyncClient):
+    files = {"file": ("resume.docx", b"nope", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    with patch("routers.analyze.settings.resume_upload_limit", 2):
+        first = await authed_client.post("/api/analyze", files=files)
+        second = await authed_client.post("/api/analyze", files=files)
+        third = await authed_client.post("/api/analyze", files=files)
+
+    assert first.status_code == 400
+    assert second.status_code == 400
+    assert third.status_code == 429
+    assert "Upload limit reached" in third.json()["detail"]
+    assert third.headers.get("retry-after")
+
+
+@pytest.mark.asyncio
+async def test_analyze_rate_limit_is_per_user(client: AsyncClient):
+    files = {"file": ("resume.docx", b"nope", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    token_a = create_access_token(User(sub="user-a", email="a@example.com", name="A"))
+    token_b = create_access_token(User(sub="user-b", email="b@example.com", name="B"))
+
+    with patch("routers.analyze.settings.resume_upload_limit", 1):
+        client.cookies.set(COOKIE_NAME, token_a)
+        first_a = await client.post("/api/analyze", files=files)
+        blocked_a = await client.post("/api/analyze", files=files)
+
+        client.cookies.set(COOKIE_NAME, token_b)
+        first_b = await client.post("/api/analyze", files=files)
+
+    assert first_a.status_code == 400
+    assert blocked_a.status_code == 429
+    assert first_b.status_code == 400

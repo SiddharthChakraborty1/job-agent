@@ -94,6 +94,9 @@ Drag a PDF or `.txt` resume onto the upload area (max 5 MB), then click **Find J
 messages stream while the pipeline runs; results appear sorted by posted date, then by
 alignment score.
 
+Each signed-in user can upload `RESUME_UPLOAD_LIMIT` times per
+`RESUME_UPLOAD_WINDOW_SECONDS` (defaults: 5 uploads per hour). Further uploads return HTTP 429.
+
 ---
 
 ## Tests

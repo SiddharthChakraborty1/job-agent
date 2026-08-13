@@ -28,3 +28,7 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         sync: false
+      - key: RESUME_UPLOAD_LIMIT
+        value: "5"
+      - key: RESUME_UPLOAD_WINDOW_SECONDS
+        value: "3600"
