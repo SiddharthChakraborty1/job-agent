@@ -123,12 +123,12 @@ async def test_happy_path_stubbed_pipeline(authed_client: AsyncClient):
             )
         ],
         unscored=[],
-        warnings=["Midlevel search failed: TimeoutError: timed out"],
+        warnings=["No job listings were found from the search results."],
     )
 
     async def fake_pipeline(resume_text: str, progress_cb):
         await progress_cb("Generating dorking queries...")
-        await progress_cb("Searching startups, mid-level orgs, and enterprises in parallel...")
+        await progress_cb("Searching job boards in parallel...")
         return stub_response
 
     with (
@@ -154,7 +154,7 @@ async def test_happy_path_stubbed_pipeline(authed_client: AsyncClient):
 
     done_data = next(d for e, d in frames if e == "done")
     assert "Backend Engineer" in done_data
-    assert "Midlevel search failed" in done_data
+    assert "No job listings were found" in done_data
 
 
 @pytest.mark.asyncio
