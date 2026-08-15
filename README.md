@@ -1,11 +1,11 @@
 # Resume Job Finder
 
-Upload a resume, and a multi-agent pipeline finds matching roles across startups, mid-level
-companies, and enterprises, then scores each match against the resume.
+Upload a resume, and a pipeline finds matching roles in India, then scores each match
+against the resume.
 
-**Pipeline:** resume text extraction → DorkingAgent (Google dork queries) → three Search Agents
-in parallel (startup / midlevel / enterprise, via Serper/Google) → deduplication → ValidationAgent
-(0–100 alignment score) → results streamed to the UI over Server-Sent Events.
+**Pipeline:** resume text extraction → DorkingAgent (Google dork queries) → batched
+Serper search + page fetch → ExtractionAgent → deduplication → company-tier labelling →
+ValidationAgent (0–100 alignment score) → results streamed to the UI over Server-Sent Events.
 
 - **Backend:** FastAPI + OpenAI Agents SDK (Python)
 - **Frontend:** React + TypeScript + Vite
@@ -90,9 +90,10 @@ Open the URL Vite prints (http://localhost:5173 by default). Vite proxies `/api`
 
 ## 4. Use it
 
-Drag a PDF or `.txt` resume onto the upload area (max 5 MB), then click **Find Jobs**. Progress
-messages stream while the pipeline runs; results appear sorted by posted date, then by
-alignment score.
+Drag a PDF or `.txt` resume onto the upload area (max 5 MB), optionally pick a preferred
+city, then click **Find Jobs**. Progress messages stream while the pipeline runs; results
+appear as cards sorted by date (newest first), then by alignment score. You can export CSV, copy
+job links, or cancel a run in progress. The last completed search is restored after refresh.
 
 Each signed-in user can upload `RESUME_UPLOAD_LIMIT` times per
 `RESUME_UPLOAD_WINDOW_SECONDS` (defaults: 5 uploads per hour). Further uploads return HTTP 429.
@@ -123,7 +124,7 @@ backend/
   config.py           Env var loading and validation
   routers/analyze.py  POST /api/analyze (SSE stream)
   services/           resume_parser, pipeline, deduplicator, serper, page_fetch
-  job_agents/         dorking, search (3 tiers), validation
+  job_agents/         dorking, extraction, validation
   models/schemas.py   Pydantic models
   tests/              SSE, parsing, and search tests
 frontend/
@@ -139,5 +140,5 @@ frontend/
 | Symptom | Fix |
 |---|---|
 | `Required environment variable 'X' is missing or empty` | Fill `X` in `.env` |
-| All three tiers report a search failure | Check `SERPER_API_KEY` and Serper credit balance |
+| All searches return no jobs | Check `SERPER_API_KEY` and Serper credit balance |
 | Frontend shows a connection error | Confirm the backend is running on port 8000 |

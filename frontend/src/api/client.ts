@@ -24,14 +24,22 @@ async function extractErrorMessage(response: Response): Promise<string> {
  * Upload a resume file and stream pipeline events from the backend via SSE.
  * Yields PipelineEvent objects as they arrive.
  */
-export async function* analyzeResume(file: File): AsyncGenerator<PipelineEvent> {
+export async function* analyzeResume(
+  file: File,
+  options: { cities?: string[]; signal?: AbortSignal } = {}
+): AsyncGenerator<PipelineEvent> {
   const formData = new FormData();
   formData.append('file', file);
+  const cities = (options.cities ?? []).map((city) => city.trim()).filter(Boolean);
+  if (cities.length > 0) {
+    formData.append('city', cities.join(', '));
+  }
 
   const response = await fetch(apiUrl('/api/analyze'), {
     method: 'POST',
     body: formData,
     credentials: 'include',
+    signal: options.signal,
   });
 
   if (!response.ok) {

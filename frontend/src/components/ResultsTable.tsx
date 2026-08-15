@@ -1,16 +1,13 @@
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Link from '@mui/material/Link';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
+import { useMemo, useState } from 'react';
 import Alert from '@mui/material/Alert';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
 import { JobCard } from './JobCard';
 import type { ValidatedJobResult, UnscoredJobResult } from '../types';
@@ -19,37 +16,122 @@ interface ResultsTableProps {
   validated: ValidatedJobResult[];
   unscored: UnscoredJobResult[];
   warnings?: string[];
+  fromSaved?: boolean;
+  savedAt?: string | null;
+  city?: string;
 }
 
-const TIER_COLORS: Record<string, 'success' | 'info' | 'secondary'> = {
-  startup: 'success',
-  midlevel: 'info',
-  enterprise: 'secondary',
-};
-
-const stickyHeadCellSx = {
-  position: 'sticky',
-  top: 0,
-  zIndex: 2,
-  bgcolor: 'background.paper',
-  boxShadow: (theme: { palette: { divider: string } }) =>
-    `inset 0 -1px 0 ${theme.palette.divider}`,
-};
-
-function scoreColor(score: number): 'success' | 'warning' | 'error' {
-  if (score >= 70) return 'success';
-  if (score >= 40) return 'warning';
-  return 'error';
+function csvEscape(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'Date unknown';
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? 'Date unknown' : d.toLocaleDateString();
+function toCsv(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): string {
+  const header = [
+    'posted_date',
+    'job_title',
+    'company_name',
+    'organisation_tier',
+    'alignment_score',
+    'justification',
+    'description',
+    'job_url',
+  ];
+  const rows = [
+    ...validated.map((job) => [
+      job.posted_date ?? '',
+      job.job_title,
+      job.company_name,
+      job.organisation_tier,
+      String(job.alignment_score),
+      job.justification,
+      job.description,
+      job.job_url,
+    ]),
+    ...unscored.map((job) => [
+      job.posted_date ?? '',
+      job.job_title,
+      job.company_name,
+      job.organisation_tier,
+      '',
+      '',
+      job.description,
+      job.job_url,
+    ]),
+  ];
+  return [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n');
 }
 
-export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTableProps) {
-  const isEmpty = validated.length === 0 && unscored.length === 0;
+function allUrls(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): string[] {
+  return [...validated, ...unscored].map((job) => job.job_url);
+}
+
+function postedTimestamp(dateStr: string | null): number {
+  if (!dateStr) return 0;
+  const value = Date.parse(dateStr);
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function sortValidated(jobs: ValidatedJobResult[]): ValidatedJobResult[] {
+  return [...jobs].sort((a, b) => {
+    const dateA = postedTimestamp(a.posted_date);
+    const dateB = postedTimestamp(b.posted_date);
+    if (dateA !== dateB) return dateB - dateA;
+    return b.alignment_score - a.alignment_score;
+  });
+}
+
+function sortUnscored(jobs: UnscoredJobResult[]): UnscoredJobResult[] {
+  return [...jobs].sort((a, b) => postedTimestamp(b.posted_date) - postedTimestamp(a.posted_date));
+}
+
+function formatSavedAt(savedAt: string | null | undefined): string {
+  if (!savedAt) return '';
+  const d = new Date(savedAt);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString();
+}
+
+export function ResultsTable({
+  validated,
+  unscored,
+  warnings = [],
+  fromSaved = false,
+  savedAt,
+  city,
+}: ResultsTableProps) {
+  const sortedValidated = useMemo(() => sortValidated(validated), [validated]);
+  const sortedUnscored = useMemo(() => sortUnscored(unscored), [unscored]);
+  const isEmpty = sortedValidated.length === 0 && sortedUnscored.length === 0;
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const urls = useMemo(
+    () => allUrls(sortedValidated, sortedUnscored),
+    [sortedValidated, sortedUnscored]
+  );
+  const savedLabel = formatSavedAt(savedAt);
+
+  const handleExport = () => {
+    const blob = new Blob([toCsv(sortedValidated, sortedUnscored)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `job-matches-${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(urls.join('\n'));
+      setCopyState('copied');
+      window.setTimeout(() => setCopyState('idle'), 2000);
+    } catch {
+      setCopyState('failed');
+      window.setTimeout(() => setCopyState('idle'), 2000);
+    }
+  };
 
   return (
     <Box
@@ -62,6 +144,13 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
         overflow: 'hidden',
       }}
     >
+      {fromSaved && savedLabel && (
+        <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
+          Showing your last search from {savedLabel}
+          {city ? ` · ${city}` : ''}. Run a new search to refresh.
+        </Alert>
+      )}
+
       {warnings.length > 0 && (
         <Alert severity="warning" role="status" sx={{ mb: 2, flexShrink: 0 }}>
           {warnings.map((w, i) => (
@@ -70,6 +159,36 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
             </Typography>
           ))}
         </Alert>
+      )}
+
+      {!isEmpty && (
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          sx={{ mb: 2, flexShrink: 0 }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DownloadOutlinedIcon />}
+            onClick={handleExport}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ContentCopyIcon />}
+            onClick={() => void handleCopy()}
+            disabled={urls.length === 0}
+          >
+            {copyState === 'copied'
+              ? 'Copied'
+              : copyState === 'failed'
+                ? 'Copy failed'
+                : 'Copy links'}
+          </Button>
+        </Stack>
       )}
 
       {isEmpty ? (
@@ -89,7 +208,7 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
             No matching jobs found
           </Typography>
           <Typography variant="body2" color="text.disabled">
-            Try uploading a different resume or check back later.
+            Try a different city or resume, then search again.
           </Typography>
         </Paper>
       ) : (
@@ -101,7 +220,7 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
             pr: 0.5,
           }}
         >
-          {validated.length > 0 && (
+          {sortedValidated.length > 0 && (
             <Box component="section" aria-labelledby="validated-heading" sx={{ mb: 4 }}>
               <Typography
                 id="validated-heading"
@@ -110,89 +229,15 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
                 sx={{ mb: 2, fontWeight: 600 }}
               >
                 Matched Jobs
-                <Chip label={validated.length} size="small" color="primary" sx={{ ml: 1.5 }} />
+                <Chip label={sortedValidated.length} size="small" color="primary" sx={{ ml: 1.5 }} />
               </Typography>
-
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-                <Table size="small" sx={{ minWidth: 720 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={stickyHeadCellSx}>Posted Date</TableCell>
-                      <TableCell sx={stickyHeadCellSx}>Job Title</TableCell>
-                      <TableCell sx={stickyHeadCellSx}>Company</TableCell>
-                      <TableCell sx={stickyHeadCellSx}>Tier</TableCell>
-                      <TableCell align="center" sx={stickyHeadCellSx}>
-                        Score
-                      </TableCell>
-                      <TableCell sx={{ ...stickyHeadCellSx, minWidth: 200 }}>Justification</TableCell>
-                      <TableCell align="center" sx={stickyHeadCellSx}>
-                        Link
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {validated.map((job) => (
-                      <TableRow
-                        key={job.job_url}
-                        hover
-                        sx={{ '&:last-child td': { borderBottom: 0 } }}
-                      >
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                          {formatDate(job.posted_date)}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {job.job_title}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{job.company_name}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={job.organisation_tier}
-                            size="small"
-                            color={TIER_COLORS[job.organisation_tier] ?? 'default'}
-                            sx={{ textTransform: 'capitalize' }}
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={job.alignment_score}
-                            size="small"
-                            color={scoreColor(job.alignment_score)}
-                            sx={{ fontWeight: 600, minWidth: 40 }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {job.justification}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Link
-                            href={job.job_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            underline="hover"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 0.25,
-                              fontSize: '0.875rem',
-                            }}
-                          >
-                            Open
-                            <OpenInNewIcon sx={{ fontSize: 14 }} />
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              {sortedValidated.map((job) => (
+                <JobCard key={job.job_url} job={job} scored />
+              ))}
             </Box>
           )}
 
-          {unscored.length > 0 && (
+          {sortedUnscored.length > 0 && (
             <Box component="section" aria-labelledby="unscored-heading">
               <Typography
                 id="unscored-heading"
@@ -201,12 +246,12 @@ export function ResultsTable({ validated, unscored, warnings = [] }: ResultsTabl
                 sx={{ mb: 0.5, fontWeight: 600 }}
               >
                 Unscored Jobs
-                <Chip label={unscored.length} size="small" sx={{ ml: 1.5 }} />
+                <Chip label={sortedUnscored.length} size="small" sx={{ ml: 1.5 }} />
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 These listings could not be scored against your resume.
               </Typography>
-              {unscored.map((job) => (
+              {sortedUnscored.map((job) => (
                 <JobCard key={job.job_url} job={job} scored={false} />
               ))}
             </Box>

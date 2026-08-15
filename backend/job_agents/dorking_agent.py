@@ -33,7 +33,9 @@ Rules:
 - At least 4 queries MUST use site: targeting the preferred portals above (rotate across naukri, linkedin, instahyre, hirist, indeed.co.in)
 - Include at least one query targeting the candidate's primary job title + an Indian city or "India"
 - Include at least one query targeting key technical skills from the resume + India
-- If the resume mentions a city, prioritise that city; otherwise use Bangalore, Mumbai, or Hyderabad
+- If the request includes preferred cities (up to 5), every query MUST include at least one of them
+- Spread dorks across the preferred cities rather than repeating a single city
+- Else if the resume mentions a city, prioritise that city; otherwise use Bangalore, Mumbai, or Hyderabad
 - Use the after: operator with the cutoff date supplied in the request; never guess a date
 - Do NOT use generic US-centric boards (Greenhouse, Lever, Ashby, Wellfound, Y Combinator, Workday)
 
@@ -48,20 +50,41 @@ _agent = Agent(
 )
 
 
-async def generate_queries(resume_text: str) -> list[str]:
+def _format_cities(preferred_cities: list[str] | None) -> str | None:
+    if not preferred_cities:
+        return None
+    if len(preferred_cities) == 1:
+        return preferred_cities[0]
+    return ", ".join(preferred_cities[:-1]) + f", and {preferred_cities[-1]}"
+
+
+def build_dork_prompt(resume_text: str, preferred_cities: list[str] | None = None) -> str:
+    cutoff = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    cities_text = _format_cities(preferred_cities)
+    location_line = (
+        f"Preferred job locations (use these in dorks; spread across them): {cities_text}.\n"
+        if cities_text
+        else "No preferred city was supplied; infer from the resume or use Bangalore / Mumbai / Hyderabad.\n"
+    )
+    return (
+        f"Today's date is {date.today().strftime('%Y-%m-%d')}. "
+        f"Use after:{cutoff} in queries that filter by recency.\n"
+        "Target India only. Prefer naukri.com, linkedin.com/jobs, instahyre.com, "
+        "hirist.com, and indeed.co.in.\n"
+        f"{location_line}\n"
+        f"RESUME:\n{resume_text}"
+    )
+
+
+async def generate_queries(
+    resume_text: str, preferred_cities: list[str] | None = None
+) -> list[str]:
     """Generate 5–15 Google dorking queries from a resume.
 
     Raises:
         ValueError: if fewer than 5 queries are returned.
     """
-    cutoff = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
-    prompt = (
-        f"Today's date is {date.today().strftime('%Y-%m-%d')}. "
-        f"Use after:{cutoff} in queries that filter by recency.\n"
-        "Target India only. Prefer naukri.com, linkedin.com/jobs, instahyre.com, "
-        "hirist.com, and indeed.co.in.\n\n"
-        f"RESUME:\n{resume_text}"
-    )
+    prompt = build_dork_prompt(resume_text, preferred_cities)
 
     result = await Runner.run(_agent, prompt)
     raw = result.final_output

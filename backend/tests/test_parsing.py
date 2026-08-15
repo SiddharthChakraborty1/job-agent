@@ -55,3 +55,15 @@ def test_unparsable_output_rejected():
 
 def test_strip_fences_leaves_plain_text_untouched():
     assert strip_code_fences('  ["a"]  ') == '["a"]'
+
+
+def test_dork_prompt_includes_preferred_cities():
+    from job_agents.dorking_agent import build_dork_prompt
+
+    with_city = build_dork_prompt("Python engineer in India", ["Hyderabad", "Pune"])
+    assert "Hyderabad" in with_city
+    assert "Pune" in with_city
+    assert "spread across them" in with_city
+
+    without_city = build_dork_prompt("Python engineer in India")
+    assert "No preferred city was supplied" in without_city

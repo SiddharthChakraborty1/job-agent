@@ -1,20 +1,41 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import SearchIcon from '@mui/icons-material/Search';
+import { loadPreferredCities } from '../storage/lastRun';
 
 interface FileUploadProps {
-  onSubmit: (file: File) => void;
+  onSubmit: (file: File, cities: string[]) => void;
+  userSub: string;
+  initialCities?: string[];
   disabled?: boolean;
 }
 
 const ACCEPTED_MIME = ['application/pdf', 'text/plain'];
 const ACCEPTED_EXT = ['.pdf', '.txt'];
+
+export const MAX_CITIES = 5;
+
+export const INDIAN_CITIES = [
+  'Bangalore',
+  'Mumbai',
+  'Hyderabad',
+  'Pune',
+  'Delhi',
+  'Gurgaon',
+  'Noida',
+  'Chennai',
+  'Kolkata',
+  'Ahmedabad',
+  'Remote India',
+];
 
 function isValidFile(file: File): boolean {
   const ext = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -27,11 +48,22 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FileUpload({ onSubmit, disabled = false }: FileUploadProps) {
+export function FileUpload({
+  onSubmit,
+  userSub,
+  initialCities = [],
+  disabled = false,
+}: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cities, setCities] = useState<string[]>(initialCities);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setCities(initialCities.length > 0 ? initialCities : loadPreferredCities(userSub));
+    // Join so a new array with the same cities does not reset the picker.
+  }, [userSub, initialCities.join('|')]);
 
   const handleFile = useCallback((file: File) => {
     if (!isValidFile(file)) {
@@ -66,7 +98,7 @@ export function FileUpload({ onSubmit, disabled = false }: FileUploadProps) {
   const handleDragLeave = () => setIsDragging(false);
 
   const handleSubmit = () => {
-    if (selectedFile) onSubmit(selectedFile);
+    if (selectedFile) onSubmit(selectedFile, cities);
   };
 
   return (
@@ -162,6 +194,42 @@ export function FileUpload({ onSubmit, disabled = false }: FileUploadProps) {
           </Box>
         </Paper>
       )}
+
+      <Autocomplete
+        multiple
+        freeSolo
+        filterSelectedOptions
+        options={INDIAN_CITIES}
+        value={cities}
+        onChange={(_event, value) => {
+          const next = value
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter(Boolean);
+          const unique: string[] = [];
+          const seen = new Set<string>();
+          for (const city of next) {
+            const key = city.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            unique.push(city);
+            if (unique.length >= MAX_CITIES) break;
+          }
+          setCities(unique);
+        }}
+        getOptionDisabled={(option) =>
+          cities.length >= MAX_CITIES && !cities.includes(option)
+        }
+        disabled={disabled}
+        sx={{ mt: 2 }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Preferred cities"
+            placeholder={cities.length >= MAX_CITIES ? '' : 'e.g. Bangalore'}
+            helperText={`Select up to ${MAX_CITIES} cities. Leave blank to infer from the resume.`}
+          />
+        )}
+      />
 
       <Button
         variant="contained"

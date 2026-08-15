@@ -17,6 +17,7 @@ def verify_google_credential(credential: str) -> User:
         credential,
         GOOGLE_REQUEST,
         settings.google_client_id,
+        clock_skew_in_seconds=60,
     )
 
     if idinfo.get("iss") not in {"accounts.google.com", "https://accounts.google.com"}:

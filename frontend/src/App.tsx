@@ -24,14 +24,18 @@ function App() {
     unscored,
     warnings,
     error,
+    fromSaved,
+    savedAt,
+    cities,
     startStream,
+    cancel,
     dismissError,
     reset,
-  } = usePipelineStream();
+  } = usePipelineStream(user?.sub ?? '');
 
   const handleSubmit = useCallback(
-    (file: File) => {
-      startStream(file);
+    (file: File, preferredCities: string[]) => {
+      startStream(file, preferredCities);
     },
     [startStream]
   );
@@ -147,14 +151,23 @@ function App() {
           )}
 
           {(status === 'idle' || status === 'error') && (
-            <FileUpload onSubmit={handleSubmit} />
+            <FileUpload onSubmit={handleSubmit} userSub={user.sub} initialCities={cities} />
           )}
 
-          {status === 'running' && <ProgressIndicator message={progress} />}
+          {status === 'running' && (
+            <ProgressIndicator message={progress} onCancel={cancel} />
+          )}
 
           {status === 'done' && (
             <>
-              <ResultsTable validated={validated} unscored={unscored} warnings={warnings} />
+              <ResultsTable
+                validated={validated}
+                unscored={unscored}
+                warnings={warnings}
+                fromSaved={fromSaved}
+                savedAt={savedAt}
+                city={cities.join(', ')}
+              />
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexShrink: 0 }}>
                 <Button
                   variant="outlined"

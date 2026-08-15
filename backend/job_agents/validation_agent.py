@@ -41,7 +41,9 @@ _agent = Agent(
 
 
 async def validate(
-    resume_text: str, jobs: list[JobResult]
+    resume_text: str,
+    jobs: list[JobResult],
+    preferred_cities: list[str] | None = None,
 ) -> tuple[list[ValidatedJobResult], list[UnscoredJobResult], list[str]]:
     """Score each job result against the resume.
 
@@ -55,7 +57,14 @@ async def validate(
     job_by_url: dict[str, JobResult] = {j.job_url: j for j in jobs}
 
     jobs_json = json.dumps([j.model_dump(mode="json") for j in jobs], indent=2)
-    prompt = f"RESUME:\n{resume_text}\n\nJOBS:\n{jobs_json}"
+    cities_text = ", ".join(preferred_cities) if preferred_cities else ""
+    location_line = (
+        f"\nPreferred locations: {cities_text}. Prefer these cities or remote-India; "
+        "downscore other Indian cities only slightly; still score 0–15 for roles outside India.\n"
+        if cities_text
+        else ""
+    )
+    prompt = f"RESUME:\n{resume_text}{location_line}\nJOBS:\n{jobs_json}"
 
     try:
         result = await Runner.run(_agent, input=prompt)

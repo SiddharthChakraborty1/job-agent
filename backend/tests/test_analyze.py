@@ -126,7 +126,7 @@ async def test_happy_path_stubbed_pipeline(authed_client: AsyncClient):
         warnings=["No job listings were found from the search results."],
     )
 
-    async def fake_pipeline(resume_text: str, progress_cb):
+    async def fake_pipeline(resume_text: str, progress_cb, preferred_cities=None):
         await progress_cb("Generating dorking queries...")
         await progress_cb("Searching job boards in parallel...")
         return stub_response
@@ -189,3 +189,37 @@ async def test_analyze_rate_limit_is_per_user(client: AsyncClient):
     assert first_a.status_code == 400
     assert blocked_a.status_code == 429
     assert first_b.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_analyze_forwards_preferred_cities(authed_client: AsyncClient):
+    captured: dict[str, object] = {}
+
+    async def fake_pipeline(resume_text: str, progress_cb, preferred_cities=None):
+        captured["cities"] = preferred_cities
+        await progress_cb("Searching job boards in parallel...")
+        return PipelineResponse(validated=[], unscored=[], warnings=[])
+
+    with (
+        patch("routers.analyze.extract_text", return_value="Jane Doe\nPython engineer"),
+        patch("routers.analyze.run_pipeline", new=AsyncMock(side_effect=fake_pipeline)),
+    ):
+        resp = await authed_client.post(
+            "/api/analyze",
+            files={"file": ("resume.txt", b"Jane Doe\nPython engineer", "text/plain")},
+            data={"city": "Hyderabad, Pune, Hyderabad, Chennai, Bangalore, Mumbai"},
+        )
+
+    assert resp.status_code == 200
+    assert captured["cities"] == ["Hyderabad", "Pune", "Chennai", "Bangalore", "Mumbai"]
+
+
+def test_normalise_preferred_cities():
+    from routers.analyze import normalise_preferred_cities
+
+    assert normalise_preferred_cities(None) == []
+    assert normalise_preferred_cities("   ") == []
+    assert normalise_preferred_cities("  Pune  ") == ["Pune"]
+    assert normalise_preferred_cities("Pune, Bangalore, Pune") == ["Pune", "Bangalore"]
+    assert len(normalise_preferred_cities("a,b,c,d,e,f")) == 5
+    assert normalise_preferred_cities("x" * 200)[0] == "x" * 80
