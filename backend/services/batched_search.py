@@ -40,6 +40,7 @@ class SearchHit:
     url: str
     title: str
     snippet: str
+    date: str | None = None  # Serper/Google date string, e.g. "2 days ago"
     page_text: str | None = None
 
 
@@ -91,6 +92,7 @@ def _merge_serper_hits(rows: list[list[dict[str, str]]]) -> list[SearchHit]:
                 url=url,
                 title=row["title"],
                 snippet=row["snippet"],
+                date=(row.get("date") or "").strip() or None,
             )
     hits = list(by_url.values())
     hits.sort(key=lambda h: _url_priority(h.url), reverse=True)
@@ -129,6 +131,7 @@ def _attach_page_text(hits: list[SearchHit], page_texts: dict[str, str]) -> list
                     url=hit.url,
                     title=hit.title,
                     snippet=hit.snippet,
+                    date=hit.date,
                     page_text=text,
                 )
             )

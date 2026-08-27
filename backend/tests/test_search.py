@@ -23,6 +23,7 @@ async def test_search_dork_sends_exact_query_to_serper():
                         "title": "Backend Engineer",
                         "link": "https://jobs.lever.co/acme/abc",
                         "snippet": "Django",
+                        "date": "2 days ago",
                     }
                 ]
             }
@@ -55,6 +56,7 @@ async def test_search_dork_sends_exact_query_to_serper():
             "title": "Backend Engineer",
             "url": "https://jobs.lever.co/acme/abc",
             "snippet": "Django",
+            "date": "2 days ago",
         }
     ]
 

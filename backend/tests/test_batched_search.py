@@ -36,6 +36,7 @@ def test_merge_serper_hits_dedupes_by_url_and_sorts_job_urls_first():
                 "url": "https://www.naukri.com/job-listings-backend-engineer-acme",
                 "title": "Backend Engineer - Acme",
                 "snippet": "Python Bangalore",
+                "date": "2 days ago",
             },
         ],
         [
@@ -54,6 +55,7 @@ def test_merge_serper_hits_dedupes_by_url_and_sorts_job_urls_first():
     hits = _merge_serper_hits(batches)
     assert len(hits) == 3
     assert hits[0].url.endswith("job-listings-backend-engineer-acme")
+    assert hits[0].date == "2 days ago"
     assert hits[1].url.endswith("/j/123")
 
 
@@ -112,6 +114,7 @@ async def test_extract_jobs_parses_valid_json():
             url="https://www.hirist.com/j/1",
             title="Backend Engineer - Foo",
             snippet="Python Bangalore",
+            date="2 days ago",
         )
     ]
     raw = """[
@@ -134,3 +137,54 @@ async def test_extract_jobs_parses_valid_json():
     assert len(jobs) == 1
     assert jobs[0].company_name == "Foo"
     assert jobs[0].job_url == "https://www.hirist.com/j/1"
+
+
+@pytest.mark.asyncio
+async def test_extract_jobs_drops_stale_posted_dates():
+    hits = [
+        SearchHit(
+            url="https://www.hirist.com/j/2",
+            title="Engineer",
+            snippet="Role",
+            date="2 days ago",
+        )
+    ]
+    raw = """[
+      {
+        "job_title": "Engineer",
+        "company_name": "Foo",
+        "job_url": "https://www.hirist.com/j/2",
+        "organisation_tier": "startup",
+        "description": "Role",
+        "posted_date": "2023-08-10"
+      }
+    ]"""
+
+    class FakeResult:
+        final_output = raw
+
+    captured: dict[str, str] = {}
+
+    async def fake_run(agent, prompt):
+        captured["prompt"] = prompt
+        return FakeResult()
+
+    with patch("job_agents.extraction_agent.Runner.run", side_effect=fake_run):
+        jobs = await extract_jobs(hits)
+
+    assert "TODAY is" in captured["prompt"]
+    assert '"date": "2 days ago"' in captured["prompt"]
+    assert len(jobs) == 1
+    assert jobs[0].posted_date is None
+
+
+def test_sanitise_posted_date_keeps_recent():
+    from datetime import date, timedelta
+
+    from job_agents.extraction_agent import _sanitise_posted_date
+
+    today = date(2026, 8, 15)
+    assert _sanitise_posted_date(date(2026, 8, 13), today) == date(2026, 8, 13)
+    assert _sanitise_posted_date(date(2023, 8, 10), today) is None
+    assert _sanitise_posted_date(today + timedelta(days=1), today) is None
+    assert _sanitise_posted_date(None, today) is None

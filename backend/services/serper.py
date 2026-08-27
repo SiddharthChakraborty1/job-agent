@@ -20,7 +20,12 @@ def _normalise(row: dict) -> dict[str, str] | None:
     if not url or not title:
         return None
     snippet = (row.get("snippet") or "").strip()
-    return {"title": title, "url": url, "snippet": snippet[:400]}
+    # Google/Serper often returns relative dates ("2 days ago") or calendar strings.
+    date = (row.get("date") or "").strip()
+    item = {"title": title, "url": url, "snippet": snippet[:400]}
+    if date:
+        item["date"] = date[:80]
+    return item
 
 
 async def search_dork(query: str, max_results: int = MAX_RESULTS) -> list[dict[str, str]]:
