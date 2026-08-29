@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Siddharth Chakraborty</title>
+    <meta
+      name="description"
+      content="Senior Software Engineer and team mentor. Full-stack, search systems, and agentic AI."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <header class="top">
+      <p class="brand">Siddharth Chakraborty</p>
+      <nav>
+        <a href="#work">Work</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="role">Senior Software Engineer · Team Mentor</p>
+        <h1>Full-stack engineer building systems that stay fast, clear, and usable.</h1>
+        <p class="lede">
+          Over 5 years across healthcare and product engineering—Django, React,
+          search pipelines, and agentic AI. I scope features, ship system-wide
+          work, and mentor the team along the way.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="https://jobagent.techside.in"
+            >Open Agent Finder</a
+          >
+          <a class="btn ghost" href="mailto:siddharth.chakraborty06@gmail.com"
+            >Email me</a
+          >
+        </div>
+      </section>
+
+      <section id="work" class="section">
+        <h2>Selected work</h2>
+        <p class="section-note">
+          Recent products and tools—from production LIMS systems to open-source
+          AI utilities.
+        </p>
+        <ul class="work-list">
+          <li>
+            <a href="https://jobagent.techside.in">
+              <span class="work-title">Agent Finder</span>
+              <span class="work-desc"
+                >Resume-aware job search powered by a multi-agent pipeline
+                (FastAPI, OpenAI Agents, React).</span
+              >
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://pypi.org/project/git-ai-pr-review/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="work-title">git-ai-pr-review</span>
+              <span class="work-desc"
+                >PyPI CLI that reviews Git diffs with LLMs and AST-based impact
+                analysis.</span
+              >
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/SiddharthChakraborty1"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="work-title">Search &amp; audit systems · CrelioHealth</span>
+              <span class="work-desc"
+                >Real-time CDC search (Debezium, Redpanda, Elasticsearch),
+                centralized audit trails, ABDM integration, and infra cost
+                cuts.</span
+              >
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact" class="section">
+        <h2>Contact</h2>
+        <p class="section-note">Happy to talk about engineering, AI agents, or mentoring.</p>
+        <ul class="links">
+          <li>
+            <a href="mailto:siddharth.chakraborty06@gmail.com"
+              >siddharth.chakraborty06@gmail.com</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/SiddharthChakraborty1"
+              target="_blank"
+              rel="noreferrer"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.linkedin.com/in/siddharth-chakraborty-823b19159"
+              target="_blank"
+              rel="noreferrer"
+              >LinkedIn</a
+            >
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>© <span id="year"></span> Siddharth Chakraborty</p>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
