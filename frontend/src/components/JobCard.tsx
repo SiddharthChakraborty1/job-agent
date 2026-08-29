@@ -19,6 +19,7 @@ import {
   type ApplicationStatus,
 } from '../storage/applicationStatus';
 import type { ValidatedJobResult, UnscoredJobResult } from '../types';
+import { ScoreDonut } from './ScoreDonut';
 
 type JobCardProps =
   | {
@@ -42,12 +43,6 @@ const TIER_COLORS: Record<string, 'success' | 'info' | 'secondary'> = {
   enterprise: 'secondary',
 };
 
-function scoreColor(score: number): 'success' | 'warning' | 'error' {
-  if (score >= 70) return 'success';
-  if (score >= 40) return 'warning';
-  return 'error';
-}
-
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Date unknown';
   const d = new Date(dateStr);
@@ -58,6 +53,7 @@ export function JobCard(props: JobCardProps) {
   const { job, scored, isNew = false, applicationStatus, onStatusChange } = props;
   const tierColor = TIER_COLORS[job.organisation_tier] ?? 'default';
   const statusId = useId();
+  const score = scored ? (props as { job: ValidatedJobResult }).job.alignment_score : null;
 
   const handleStatus = (event: SelectChangeEvent<ApplicationStatus>) => {
     onStatusChange(job.job_url, event.target.value as ApplicationStatus);
@@ -77,31 +73,35 @@ export function JobCard(props: JobCardProps) {
       }}
     >
       <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-          <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
-            {job.job_title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" component="span">
-            — {job.company_name}
-          </Typography>
-          {isNew && (
-            <Chip label="New" size="small" color="primary" sx={{ fontWeight: 700 }} />
-          )}
-          <Chip
-            label={job.organisation_tier}
-            size="small"
-            color={tierColor}
-            sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-          />
-          {scored && (
-            <Chip
-              label={`${(props as { job: ValidatedJobResult }).job.alignment_score}/100`}
-              size="small"
-              color={scoreColor((props as { job: ValidatedJobResult }).job.alignment_score)}
-              aria-label={`Alignment score: ${(props as { job: ValidatedJobResult }).job.alignment_score}`}
-              sx={{ fontWeight: 600 }}
-            />
-          )}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.5,
+            mb: 1,
+          }}
+        >
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
+                {job.job_title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" component="span">
+                — {job.company_name}
+              </Typography>
+              {isNew && (
+                <Chip label="New" size="small" color="primary" sx={{ fontWeight: 700 }} />
+              )}
+              <Chip
+                label={job.organisation_tier}
+                size="small"
+                color={tierColor}
+                sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+              />
+            </Box>
+          </Box>
+          {score !== null && <ScoreDonut score={score} />}
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
