@@ -9,13 +9,24 @@ import Typography from '@mui/material/Typography';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
+import FiberNewOutlinedIcon from '@mui/icons-material/FiberNewOutlined';
 import { JobCard } from './JobCard';
-import type { ValidatedJobResult, UnscoredJobResult } from '../types';
+import { SkillGapSummary } from './SkillGapSummary';
+import {
+  APPLICATION_STATUS_LABELS,
+  type ApplicationStatus,
+} from '../storage/applicationStatus';
+import type { SkillGap, ValidatedJobResult, UnscoredJobResult } from '../types';
 
 interface ResultsTableProps {
   validated: ValidatedJobResult[];
   unscored: UnscoredJobResult[];
   warnings?: string[];
+  skillGaps?: SkillGap[];
+  newJobUrls?: string[];
+  newSinceLastCount?: number | null;
+  applicationStatuses: Record<string, ApplicationStatus>;
+  onStatusChange: (jobUrl: string, status: ApplicationStatus) => void;
   fromSaved?: boolean;
   savedAt?: string | null;
   city?: string;
@@ -28,7 +39,11 @@ function csvEscape(value: string): string {
   return value;
 }
 
-function toCsv(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): string {
+function toCsv(
+  validated: ValidatedJobResult[],
+  unscored: UnscoredJobResult[],
+  statuses: Record<string, ApplicationStatus>
+): string {
   const header = [
     'posted_date',
     'job_title',
@@ -38,6 +53,8 @@ function toCsv(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): 
     'justification',
     'description',
     'job_url',
+    'application_status',
+    'missing_skills',
   ];
   const rows = [
     ...validated.map((job) => [
@@ -49,6 +66,8 @@ function toCsv(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): 
       job.justification,
       job.description,
       job.job_url,
+      APPLICATION_STATUS_LABELS[statuses[job.job_url] ?? 'not_applied'],
+      (job.missing_skills ?? []).join('; '),
     ]),
     ...unscored.map((job) => [
       job.posted_date ?? '',
@@ -59,6 +78,8 @@ function toCsv(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): 
       '',
       job.description,
       job.job_url,
+      APPLICATION_STATUS_LABELS[statuses[job.job_url] ?? 'not_applied'],
+      '',
     ]),
   ];
   return [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n');
@@ -97,6 +118,11 @@ export function ResultsTable({
   validated,
   unscored,
   warnings = [],
+  skillGaps = [],
+  newJobUrls = [],
+  newSinceLastCount = null,
+  applicationStatuses,
+  onStatusChange,
   fromSaved = false,
   savedAt,
   city,
@@ -109,10 +135,15 @@ export function ResultsTable({
     () => allUrls(sortedValidated, sortedUnscored),
     [sortedValidated, sortedUnscored]
   );
+  const newUrlSet = useMemo(() => new Set(newJobUrls), [newJobUrls]);
   const savedLabel = formatSavedAt(savedAt);
+  const showDelta =
+    typeof newSinceLastCount === 'number' && newSinceLastCount > 0 && !fromSaved;
 
   const handleExport = () => {
-    const blob = new Blob([toCsv(sortedValidated, sortedUnscored)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([toCsv(sortedValidated, sortedUnscored, applicationStatuses)], {
+      type: 'text/csv;charset=utf-8',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const stamp = new Date().toISOString().slice(0, 10);
@@ -133,6 +164,9 @@ export function ResultsTable({
     }
   };
 
+  const statusFor = (jobUrl: string): ApplicationStatus =>
+    applicationStatuses[jobUrl] ?? 'not_applied';
+
   return (
     <Box
       sx={{
@@ -148,6 +182,21 @@ export function ResultsTable({
         <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
           Showing your last search from {savedLabel}
           {city ? ` · ${city}` : ''}. Run a new search to refresh.
+          {typeof newSinceLastCount === 'number' && newSinceLastCount > 0
+            ? ` That run had ${newSinceLastCount} new posting${newSinceLastCount === 1 ? '' : 's'} vs the one before.`
+            : ''}
+        </Alert>
+      )}
+
+      {showDelta && (
+        <Alert
+          severity="success"
+          icon={<FiberNewOutlinedIcon />}
+          sx={{ mb: 2, flexShrink: 0 }}
+        >
+          {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last
+          search
+          {newSinceLastCount === 1 ? ' is' : ' are'} marked below.
         </Alert>
       )}
 
@@ -160,6 +209,8 @@ export function ResultsTable({
           ))}
         </Alert>
       )}
+
+      {!isEmpty && <SkillGapSummary gaps={skillGaps} />}
 
       {!isEmpty && (
         <Stack
@@ -232,7 +283,14 @@ export function ResultsTable({
                 <Chip label={sortedValidated.length} size="small" color="primary" sx={{ ml: 1.5 }} />
               </Typography>
               {sortedValidated.map((job) => (
-                <JobCard key={job.job_url} job={job} scored />
+                <JobCard
+                  key={job.job_url}
+                  job={job}
+                  scored
+                  isNew={newUrlSet.has(job.job_url)}
+                  applicationStatus={statusFor(job.job_url)}
+                  onStatusChange={onStatusChange}
+                />
               ))}
             </Box>
           )}
@@ -252,7 +310,14 @@ export function ResultsTable({
                 These listings could not be scored against your resume.
               </Typography>
               {sortedUnscored.map((job) => (
-                <JobCard key={job.job_url} job={job} scored={false} />
+                <JobCard
+                  key={job.job_url}
+                  job={job}
+                  scored={false}
+                  isNew={newUrlSet.has(job.job_url)}
+                  applicationStatus={statusFor(job.job_url)}
+                  onStatusChange={onStatusChange}
+                />
               ))}
             </Box>
           )}

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
@@ -5,13 +6,35 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STATUS_LABELS,
+  type ApplicationStatus,
+} from '../storage/applicationStatus';
 import type { ValidatedJobResult, UnscoredJobResult } from '../types';
 
 type JobCardProps =
-  | { job: ValidatedJobResult; scored: true }
-  | { job: UnscoredJobResult; scored: false };
+  | {
+      job: ValidatedJobResult;
+      scored: true;
+      isNew?: boolean;
+      applicationStatus: ApplicationStatus;
+      onStatusChange: (jobUrl: string, status: ApplicationStatus) => void;
+    }
+  | {
+      job: UnscoredJobResult;
+      scored: false;
+      isNew?: boolean;
+      applicationStatus: ApplicationStatus;
+      onStatusChange: (jobUrl: string, status: ApplicationStatus) => void;
+    };
 
 const TIER_COLORS: Record<string, 'success' | 'info' | 'secondary'> = {
   startup: 'success',
@@ -32,14 +55,20 @@ function formatDate(dateStr: string | null): string {
 }
 
 export function JobCard(props: JobCardProps) {
-  const { job, scored } = props;
+  const { job, scored, isNew = false, applicationStatus, onStatusChange } = props;
   const tierColor = TIER_COLORS[job.organisation_tier] ?? 'default';
+  const statusId = useId();
+
+  const handleStatus = (event: SelectChangeEvent<ApplicationStatus>) => {
+    onStatusChange(job.job_url, event.target.value as ApplicationStatus);
+  };
 
   return (
     <Card
       variant="outlined"
       sx={{
         mb: 1.5,
+        borderColor: isNew ? 'primary.main' : undefined,
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         '&:hover': {
           boxShadow: 3,
@@ -55,6 +84,9 @@ export function JobCard(props: JobCardProps) {
           <Typography variant="body2" color="text.secondary" component="span">
             — {job.company_name}
           </Typography>
+          {isNew && (
+            <Chip label="New" size="small" color="primary" sx={{ fontWeight: 700 }} />
+          )}
           <Chip
             label={job.organisation_tier}
             size="small"
@@ -92,23 +124,49 @@ export function JobCard(props: JobCardProps) {
           </>
         )}
 
-        <Link
-          href={job.job_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          underline="hover"
+        <Box
           sx={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: 0.5,
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
             mt: 1.5,
-            fontWeight: 500,
-            fontSize: '0.875rem',
           }}
         >
-          View Job Posting
-          <OpenInNewIcon sx={{ fontSize: 16 }} />
-        </Link>
+          <Link
+            href={job.job_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              fontWeight: 500,
+              fontSize: '0.875rem',
+            }}
+          >
+            View Job Posting
+            <OpenInNewIcon sx={{ fontSize: 16 }} />
+          </Link>
+
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id={statusId}>Status</InputLabel>
+            <Select
+              labelId={statusId}
+              label="Status"
+              value={applicationStatus}
+              onChange={handleStatus}
+            >
+              {APPLICATION_STATUSES.map((status) => (
+                <MenuItem key={status} value={status}>
+                  {APPLICATION_STATUS_LABELS[status]}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
       </CardContent>
     </Card>
   );

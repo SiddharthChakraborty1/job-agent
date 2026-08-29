@@ -1,4 +1,4 @@
-import type { UnscoredJobResult, ValidatedJobResult } from '../types';
+import type { UnscoredJobResult, ValidatedJobResult, SkillGap } from '../types';
 
 export interface SavedRun {
   savedAt: string;
@@ -8,6 +8,11 @@ export interface SavedRun {
   validated: ValidatedJobResult[];
   unscored: UnscoredJobResult[];
   warnings: string[];
+  skillGaps?: SkillGap[];
+  /** Job URLs that were new vs the previous saved run (empty on first run). */
+  newJobUrls?: string[];
+  /** How many new URLs vs the previous run; null when no prior run to compare. */
+  newSinceLastCount?: number | null;
 }
 
 export const MAX_CITIES = 5;
@@ -39,6 +44,24 @@ export function parseCities(value: unknown): string[] {
   return [];
 }
 
+function allUrls(validated: ValidatedJobResult[], unscored: UnscoredJobResult[]): string[] {
+  return [...validated, ...unscored].map((job) => job.job_url);
+}
+
+/** Compare a new result set against a previous saved run; returns new URLs. */
+export function diffNewJobUrls(
+  previous: SavedRun | null,
+  validated: ValidatedJobResult[],
+  unscored: UnscoredJobResult[]
+): { newJobUrls: string[]; newSinceLastCount: number | null } {
+  if (!previous) {
+    return { newJobUrls: [], newSinceLastCount: null };
+  }
+  const prior = new Set(allUrls(previous.validated, previous.unscored));
+  const newJobUrls = allUrls(validated, unscored).filter((url) => !prior.has(url));
+  return { newJobUrls, newSinceLastCount: newJobUrls.length };
+}
+
 export function loadLastRun(userSub: string): SavedRun | null {
   try {
     const raw = localStorage.getItem(runKey(userSub));
@@ -50,6 +73,10 @@ export function loadLastRun(userSub: string): SavedRun | null {
     return {
       ...parsed,
       cities: parseCities(parsed.cities?.length ? parsed.cities : parsed.city),
+      skillGaps: Array.isArray(parsed.skillGaps) ? parsed.skillGaps : [],
+      newJobUrls: Array.isArray(parsed.newJobUrls) ? parsed.newJobUrls : [],
+      newSinceLastCount:
+        typeof parsed.newSinceLastCount === 'number' ? parsed.newSinceLastCount : null,
     };
   } catch {
     return null;
@@ -59,7 +86,16 @@ export function loadLastRun(userSub: string): SavedRun | null {
 export function saveLastRun(userSub: string, run: SavedRun): void {
   try {
     const cities = parseCities(run.cities);
-    localStorage.setItem(runKey(userSub), JSON.stringify({ ...run, cities }));
+    localStorage.setItem(
+      runKey(userSub),
+      JSON.stringify({
+        ...run,
+        cities,
+        skillGaps: run.skillGaps ?? [],
+        newJobUrls: run.newJobUrls ?? [],
+        newSinceLastCount: run.newSinceLastCount ?? null,
+      })
+    );
     savePreferredCities(userSub, cities);
   } catch {
     // private mode / quota — ignore

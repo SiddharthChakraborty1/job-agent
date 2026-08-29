@@ -32,3 +32,10 @@ services:
         value: "5"
       - key: RESUME_UPLOAD_WINDOW_SECONDS
         value: "3600"
+      # Firestore (firebase-admin is installed via requirements.txt)
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false

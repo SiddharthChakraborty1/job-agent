@@ -34,6 +34,22 @@ class Settings:
         self.resume_upload_window_seconds = self._optional_int(
             "RESUME_UPLOAD_WINDOW_SECONDS", 3600
         )
+        # Firestore (optional locally; set on Render for cloud persistence).
+        self.firebase_credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON", "").strip()
+        self.firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "").strip()
+        self.firebase_client_email = os.getenv("FIREBASE_CLIENT_EMAIL", "").strip()
+        raw_key = os.getenv("FIREBASE_PRIVATE_KEY", "")
+        self.firebase_private_key = raw_key.replace("\\n", "\n").strip() if raw_key else ""
+
+    @property
+    def firebase_configured(self) -> bool:
+        if self.firebase_credentials_json:
+            return True
+        return bool(
+            self.firebase_project_id
+            and self.firebase_client_email
+            and self.firebase_private_key
+        )
 
     def _require(self, name: str) -> str:
         value = os.getenv(name)

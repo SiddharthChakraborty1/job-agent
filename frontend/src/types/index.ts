@@ -10,9 +10,17 @@ export interface JobResult {
 export interface ValidatedJobResult extends JobResult {
   alignment_score: number; // 0–100
   justification: string;
+  /** Skills the job asks for that the resume lacks (from ValidationAgent). */
+  missing_skills?: string[];
 }
 
 export interface UnscoredJobResult extends JobResult {}
+
+export interface SkillGap {
+  skill: string;
+  count: number;
+  percentage: number;
+}
 
 export type PipelineEventType = 'progress' | 'result' | 'warning' | 'error' | 'done';
 
@@ -26,4 +34,9 @@ export interface PipelineResponse {
   validated: ValidatedJobResult[];
   unscored: UnscoredJobResult[];
   warnings: string[];
+  skill_gaps?: SkillGap[];
+  run_id?: string | null;
+  saved_at?: string | null;
+  new_job_urls?: string[];
+  new_since_last_count?: number | null;
 }

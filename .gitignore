@@ -5,6 +5,8 @@ __pycache__/
 .hypothesis/
 .env
 frontend/.env
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
 backend/.hypothesis/
 frontend/dist/
 frontend/node_modules/

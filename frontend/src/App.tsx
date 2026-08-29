@@ -23,6 +23,10 @@ function App() {
     validated,
     unscored,
     warnings,
+    skillGaps,
+    newJobUrls,
+    newSinceLastCount,
+    applicationStatuses,
     error,
     fromSaved,
     savedAt,
@@ -31,6 +35,7 @@ function App() {
     cancel,
     dismissError,
     reset,
+    updateApplicationStatus,
   } = usePipelineStream(user?.sub ?? '');
 
   const handleSubmit = useCallback(
@@ -164,6 +169,11 @@ function App() {
                 validated={validated}
                 unscored={unscored}
                 warnings={warnings}
+                skillGaps={skillGaps}
+                newJobUrls={newJobUrls}
+                newSinceLastCount={newSinceLastCount}
+                applicationStatuses={applicationStatuses}
+                onStatusChange={updateApplicationStatus}
                 fromSaved={fromSaved}
                 savedAt={savedAt}
                 city={cities.join(', ')}

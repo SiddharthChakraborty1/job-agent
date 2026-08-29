@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings  # noqa: F401
 from routers.analyze import router as analyze_router
 from routers.auth import router as auth_router
+from routers.persistence import router as persistence_router
+from services.firebase import init_firebase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,10 +20,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    firestore_ok = init_firebase()
     logger.info(
-        "Resume Job Finder started. Models: costly=%s, cheap=%s. Search: Serper",
+        "Resume Job Finder started. Models: costly=%s, cheap=%s. Search: Serper. Firestore: %s",
         settings.costly_model,
         settings.cheap_model,
+        "ready" if firestore_ok else "disabled",
     )
     yield
 
@@ -44,6 +48,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(analyze_router, prefix="/api")
+app.include_router(persistence_router, prefix="/api")
 
 
 @app.get("/health")

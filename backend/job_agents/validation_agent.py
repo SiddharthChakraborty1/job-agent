@@ -21,6 +21,10 @@ For each job posting, evaluate how well the candidate's skills, experience, and 
 
 Include a justification of no more than 100 words explaining the score.
 
+Also list concrete skills or tools the job asks for that the resume does not show
+(missing_skills). Use short, standard names (e.g. "Kubernetes", "gRPC", "AWS").
+Omit soft skills and generic traits. Return an empty list when there is no clear gap.
+
 Location bias (unless the resume explicitly seeks relocation abroad):
 - Score 0–15 for jobs clearly located outside India with no India office or remote-India option.
 - Prefer jobs in Indian cities or remote/hybrid roles open to candidates in India.
@@ -29,6 +33,7 @@ Return ONLY a JSON array. Each element must have these exact fields:
 - job_url: the job URL (copy exactly from input)
 - alignment_score: integer 0-100
 - justification: string, max 100 words
+- missing_skills: array of 0–8 short skill strings the candidate lacks for this role
 
 No markdown, no explanation outside the JSON array.
 """
@@ -92,6 +97,7 @@ async def validate(
                     **job.model_dump(),
                     alignment_score=item["alignment_score"],
                     justification=item["justification"],
+                    missing_skills=item.get("missing_skills") or [],
                 )
             )
             scored_urls.add(url)

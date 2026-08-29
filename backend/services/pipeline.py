@@ -8,6 +8,7 @@ from models.schemas import JobResult, PipelineResponse, UnscoredJobResult, Valid
 from services.batched_search import run_batched_search
 from services.company_tier import classify_company_tiers
 from services.deduplicator import deduplicate
+from services.skill_gaps import aggregate_skill_gaps
 
 logger = logging.getLogger(__name__)
 
@@ -82,4 +83,12 @@ async def run_pipeline(
     validated = sort_validated_jobs(validated)
     unscored = sort_unscored_jobs(unscored)
 
-    return PipelineResponse(validated=validated, unscored=unscored, warnings=warnings)
+    await progress_cb("Summarizing skill gaps...")
+    skill_gaps = aggregate_skill_gaps(validated)
+
+    return PipelineResponse(
+        validated=validated,
+        unscored=unscored,
+        warnings=warnings,
+        skill_gaps=skill_gaps,
+    )

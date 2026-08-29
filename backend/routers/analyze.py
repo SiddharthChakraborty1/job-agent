@@ -6,9 +6,13 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 
+from functools import partial
+
 from config import settings
 from dependencies.auth import get_current_user
 from models.auth import User
+from services.firebase import is_firestore_ready
+from services.firestore_store import save_preferred_cities, save_run
 from services.pipeline import run_pipeline
 from services.rate_limit import retry_message, upload_limiter
 from services.resume_parser import extract_text
@@ -121,6 +125,45 @@ async def analyze(
                 response = await run_pipeline(
                     resume_text, progress_cb, preferred_cities=preferred_cities
                 )
+
+                # Persist to Firestore when configured (also computes new-since-last delta).
+                if is_firestore_ready():
+                    try:
+                        await queue.put(
+                            _sse("progress", {"message": "Saving search to your account..."})
+                        )
+                        saved = await asyncio.to_thread(
+                            partial(
+                                save_run,
+                                user.sub,
+                                cities=preferred_cities,
+                                validated=[
+                                    j.model_dump(mode="json") for j in response.validated
+                                ],
+                                unscored=[
+                                    j.model_dump(mode="json") for j in response.unscored
+                                ],
+                                warnings=list(response.warnings),
+                                skill_gaps=[
+                                    g.model_dump(mode="json") for g in response.skill_gaps
+                                ],
+                            )
+                        )
+                        response.run_id = saved["id"]
+                        response.saved_at = saved["savedAt"]
+                        response.new_job_urls = list(saved.get("newJobUrls") or [])
+                        response.new_since_last_count = saved.get("newSinceLastCount")
+                        await asyncio.to_thread(
+                            save_preferred_cities,
+                            user.sub,
+                            preferred_cities,
+                        )
+                    except Exception:
+                        logger.exception("Failed to persist run for user %s", user.sub)
+                        response.warnings = [
+                            *response.warnings,
+                            "Cloud save failed; results are shown for this session only.",
+                        ]
 
                 # Emit per-warning frames
                 for warning in response.warnings:
