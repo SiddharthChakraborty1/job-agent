@@ -35,11 +35,14 @@ class Settings:
             "RESUME_UPLOAD_WINDOW_SECONDS", 3600
         )
         # Firestore (optional locally; set on Render for cloud persistence).
-        self.firebase_credentials_json = os.getenv("FIREBASE_CREDENTIALS_JSON", "").strip()
-        self.firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "").strip()
-        self.firebase_client_email = os.getenv("FIREBASE_CLIENT_EMAIL", "").strip()
-        raw_key = os.getenv("FIREBASE_PRIVATE_KEY", "")
-        self.firebase_private_key = raw_key.replace("\\n", "\n").strip() if raw_key else ""
+        self.firebase_credentials_json = self._optional_secret("FIREBASE_CREDENTIALS_JSON")
+        self.firebase_project_id = self._optional_secret("FIREBASE_PROJECT_ID")
+        self.firebase_client_email = self._optional_secret("FIREBASE_CLIENT_EMAIL")
+        raw_key = self._optional_secret("FIREBASE_PRIVATE_KEY")
+        # Render/Vercel often store PEM with literal \n; also strip wrapping quotes.
+        self.firebase_private_key = (
+            raw_key.replace("\\n", "\n").replace("\r\n", "\n").strip() if raw_key else ""
+        )
 
     @property
     def firebase_configured(self) -> bool:
@@ -50,6 +53,15 @@ class Settings:
             and self.firebase_client_email
             and self.firebase_private_key
         )
+
+    def _optional_secret(self, name: str) -> str:
+        raw = os.getenv(name)
+        if raw is None:
+            return ""
+        value = raw.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1].strip()
+        return value
 
     def _require(self, name: str) -> str:
         value = os.getenv(name)

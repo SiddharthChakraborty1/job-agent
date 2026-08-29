@@ -8,7 +8,7 @@ from config import settings  # noqa: F401
 from routers.analyze import router as analyze_router
 from routers.auth import router as auth_router
 from routers.persistence import router as persistence_router
-from services.firebase import init_firebase
+from services.firebase import init_firebase, is_firestore_ready
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,4 +53,7 @@ app.include_router(persistence_router, prefix="/api")
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "firestore": "ready" if is_firestore_ready() else "disabled",
+    }

@@ -44,7 +44,11 @@ export async function fetchRunSummaries(
     credentials: 'include',
     signal,
   });
-  if (response.status === 503) return [];
+  if (response.status === 503) {
+    throw new Error(
+      'Cloud storage is not configured on the server. Check Render Firebase env vars and redeploy.'
+    );
+  }
   if (!response.ok) throw new Error(await readError(response));
   return (await response.json()) as SavedRunSummaryDto[];
 }
