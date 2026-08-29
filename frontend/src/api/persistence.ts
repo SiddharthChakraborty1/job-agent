@@ -26,6 +26,42 @@ async function readError(response: Response): Promise<string> {
   return text;
 }
 
+export interface SavedRunSummaryDto {
+  id: string;
+  savedAt: string;
+  cities: string[];
+  validatedCount: number;
+  unscoredCount: number;
+  newSinceLastCount: number | null;
+  warnings: string[];
+}
+
+export async function fetchRunSummaries(
+  limit = 20,
+  signal?: AbortSignal
+): Promise<SavedRunSummaryDto[]> {
+  const response = await fetch(apiUrl(`/api/runs?limit=${limit}`), {
+    credentials: 'include',
+    signal,
+  });
+  if (response.status === 503) return [];
+  if (!response.ok) throw new Error(await readError(response));
+  return (await response.json()) as SavedRunSummaryDto[];
+}
+
+export async function fetchRun(
+  runId: string,
+  signal?: AbortSignal
+): Promise<SavedRunDto | null> {
+  const response = await fetch(apiUrl(`/api/runs/${encodeURIComponent(runId)}`), {
+    credentials: 'include',
+    signal,
+  });
+  if (response.status === 404 || response.status === 503) return null;
+  if (!response.ok) throw new Error(await readError(response));
+  return (await response.json()) as SavedRunDto;
+}
+
 export async function fetchLatestRun(signal?: AbortSignal): Promise<SavedRunDto | null> {
   const response = await fetch(apiUrl('/api/runs/latest'), {
     credentials: 'include',

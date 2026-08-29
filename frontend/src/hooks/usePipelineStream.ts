@@ -3,9 +3,11 @@ import { analyzeResume } from '../api/client';
 import {
   fetchLatestRun,
   fetchPreferredCities,
+  fetchRun,
   fetchStatuses,
   savePreferredCitiesRemote,
   updateStatusRemote,
+  type SavedRunDto,
 } from '../api/persistence';
 import {
   loadApplicationStatuses,
@@ -43,6 +45,7 @@ export interface PipelineStreamState {
   dismissError: () => void;
   reset: () => void;
   updateApplicationStatus: (jobUrl: string, status: ApplicationStatus) => void;
+  loadRunById: (runId: string) => Promise<boolean>;
 }
 
 function applySavedRun(
@@ -78,6 +81,19 @@ function applySavedRun(
   setters.setProgress('');
 }
 
+function dtoToSavedRun(remoteRun: SavedRunDto): SavedRun {
+  return {
+    savedAt: remoteRun.savedAt,
+    cities: remoteRun.cities ?? [],
+    validated: remoteRun.validated ?? [],
+    unscored: remoteRun.unscored ?? [],
+    warnings: remoteRun.warnings ?? [],
+    skillGaps: remoteRun.skillGaps ?? [],
+    newJobUrls: remoteRun.newJobUrls ?? [],
+    newSinceLastCount: remoteRun.newSinceLastCount,
+  };
+}
+
 export function usePipelineStream(userSub: string): PipelineStreamState {
   const [status, setStatus] = useState<StreamStatus>('idle');
   const [progress, setProgress] = useState('');
@@ -98,11 +114,32 @@ export function usePipelineStream(userSub: string): PipelineStreamState {
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
 
+  const applyRemoteDto = useCallback(
+    (remoteRun: SavedRunDto) => {
+      const saved = dtoToSavedRun(remoteRun);
+      applySavedRun(saved, {
+        setValidated,
+        setUnscored,
+        setWarnings,
+        setSkillGaps,
+        setNewJobUrls,
+        setNewSinceLastCount,
+        setCities,
+        setSavedAt,
+        setFromSaved,
+        setStatus,
+        setError,
+        setProgress,
+      });
+      saveLastRun(userSub, saved);
+    },
+    [userSub]
+  );
+
   useEffect(() => {
     if (!userSub) return;
     const controller = new AbortController();
 
-    // Instant local paint, then refresh from cloud when available.
     setApplicationStatuses(loadApplicationStatuses(userSub));
     const local = loadLastRun(userSub);
     if (local) {
@@ -148,31 +185,7 @@ export function usePipelineStream(userSub: string): PipelineStreamState {
         }
 
         if (remoteRun) {
-          const saved: SavedRun = {
-            savedAt: remoteRun.savedAt,
-            cities: remoteRun.cities ?? [],
-            validated: remoteRun.validated ?? [],
-            unscored: remoteRun.unscored ?? [],
-            warnings: remoteRun.warnings ?? [],
-            skillGaps: remoteRun.skillGaps ?? [],
-            newJobUrls: remoteRun.newJobUrls ?? [],
-            newSinceLastCount: remoteRun.newSinceLastCount,
-          };
-          applySavedRun(saved, {
-            setValidated,
-            setUnscored,
-            setWarnings,
-            setSkillGaps,
-            setNewJobUrls,
-            setNewSinceLastCount,
-            setCities,
-            setSavedAt,
-            setFromSaved,
-            setStatus,
-            setError,
-            setProgress,
-          });
-          saveLastRun(userSub, saved);
+          applyRemoteDto(remoteRun);
         }
 
         if (remoteCities.length > 0) {
@@ -185,7 +198,7 @@ export function usePipelineStream(userSub: string): PipelineStreamState {
     })();
 
     return () => controller.abort();
-  }, [userSub]);
+  }, [userSub, applyRemoteDto]);
 
   const updateApplicationStatus = useCallback(
     (jobUrl: string, next: ApplicationStatus) => {
@@ -234,6 +247,23 @@ export function usePipelineStream(userSub: string): PipelineStreamState {
     setError(null);
     setStatus('idle');
   }, []);
+
+  const loadRunById = useCallback(
+    async (runId: string): Promise<boolean> => {
+      try {
+        const remoteRun = await fetchRun(runId);
+        if (!remoteRun) return false;
+        runIdRef.current += 1;
+        abortRef.current?.abort();
+        abortRef.current = null;
+        applyRemoteDto(remoteRun);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [applyRemoteDto]
+  );
 
   const startStream = useCallback(
     (file: File, preferredCities: string[] = []) => {
@@ -360,5 +390,6 @@ export function usePipelineStream(userSub: string): PipelineStreamState {
     dismissError,
     reset,
     updateApplicationStatus,
+    loadRunById,
   };
 }
