@@ -326,7 +326,7 @@ main {
   letter-spacing: -0.02em;
 }
 
-.section-head p {
+.section-head p:not(.mono-tag) {
   margin: 0;
   max-width: 42ch;
   color: var(--muted);
