@@ -17,11 +17,12 @@ export function SkillGapSummary({ gaps }: SkillGapSummaryProps) {
     <Paper
       variant="outlined"
       sx={{
-        mb: { xs: 1, sm: 2 },
-        p: { xs: 1.25, sm: 2 },
+        mb: { xs: 1, sm: 1.25 },
+        p: { xs: 1.25, sm: 1.5 },
         flexShrink: 0,
         bgcolor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+        '@media (max-height: 900px)': { mb: 1, p: 1.25 },
       }}
     >
       <Stack direction="row" spacing={1} sx={{ mb: { xs: 0.75, sm: 1 }, alignItems: 'center' }}>
@@ -33,7 +34,11 @@ export function SkillGapSummary({ gaps }: SkillGapSummaryProps) {
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ display: { xs: 'none', sm: 'block' }, mb: 1.5 }}
+        sx={{
+          display: { xs: 'none', lg: 'block' },
+          mb: 1.5,
+          '@media (max-height: 900px)': { display: 'none' },
+        }}
       >
         Skills that show up often in these postings but look weak or missing on your resume —
         good candidates to learn or highlight.
