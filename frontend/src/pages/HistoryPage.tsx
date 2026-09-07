@@ -69,62 +69,81 @@ export function HistoryPage({ loadRunById }: HistoryPageProps) {
   };
 
   return (
-    <AppShell>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
-          Past searches
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Open a previous run to review matches and update application status. Find jobs stays
-          your default home.
-        </Typography>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : runs.length === 0 ? (
-        <Paper
-          elevation={0}
+    <AppShell fillMain>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Box
           sx={{
-            textAlign: 'center',
-            py: 6,
-            px: 2,
-            bgcolor: 'background.default',
-            borderRadius: 3,
+            mb: 1.5,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1,
+            flexShrink: 0,
           }}
         >
-          <HistoryOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No saved searches yet
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
-            Run a search from Find jobs — completed runs appear here when cloud storage is
-            configured.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            Go to Find jobs
-          </Button>
-        </Paper>
-      ) : (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <Box>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+              Past searches
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+              Open a previous run to review matches and update application status.
+            </Typography>
+          </Box>
+          {runs.length > 0 && (
             <Button
               size="small"
               startIcon={<RefreshIcon />}
               onClick={() => void load()}
               disabled={loading}
+              sx={{ flexShrink: 0 }}
             >
               Refresh
             </Button>
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 1.5, flexShrink: 0 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
           </Box>
+        ) : runs.length === 0 ? (
+          <Paper
+            elevation={0}
+            sx={{
+              textAlign: 'center',
+              py: 6,
+              px: 2,
+              bgcolor: 'background.default',
+              borderRadius: 3,
+            }}
+          >
+            <HistoryOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No saved searches yet
+            </Typography>
+            <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
+              Run a search from Find jobs — completed runs appear here when cloud storage is
+              configured.
+            </Typography>
+            <Button variant="contained" onClick={() => navigate('/')}>
+              Go to Find jobs
+            </Button>
+          </Paper>
+        ) : (
           <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <List disablePadding>
               {runs.map((run, index) => {
@@ -143,7 +162,14 @@ export function HistoryPage({ loadRunById }: HistoryPageProps) {
                       secondary={cities}
                       sx={{ '& .MuiListItemText-primary': { fontWeight: 600 } }}
                     />
-                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 0.75,
+                        flexWrap: 'wrap',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
                       <Chip size="small" label={`${total} job${total === 1 ? '' : 's'}`} />
                       {typeof run.newSinceLastCount === 'number' && run.newSinceLastCount > 0 && (
                         <Chip
@@ -159,8 +185,8 @@ export function HistoryPage({ loadRunById }: HistoryPageProps) {
               })}
             </List>
           </Paper>
-        </>
-      )}
+        )}
+      </Box>
     </AppShell>
   );
 }

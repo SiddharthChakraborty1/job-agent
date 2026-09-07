@@ -21,8 +21,8 @@ export function UserMenu() {
     <Box
       sx={{
         position: 'absolute',
-        top: { xs: 12, md: 16 },
-        left: { xs: 12, md: 16 },
+        top: 8,
+        left: { xs: 8, md: 12 },
         display: 'flex',
         alignItems: 'center',
         gap: 1,

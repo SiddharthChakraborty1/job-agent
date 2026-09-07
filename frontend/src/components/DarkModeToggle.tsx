@@ -15,8 +15,8 @@ export function DarkModeToggle() {
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         sx={{
           position: 'absolute',
-          top: { xs: 12, md: 16 },
-          right: { xs: 12, md: 16 },
+          top: 8,
+          right: { xs: 8, md: 12 },
           color: 'white',
           bgcolor: 'rgba(255,255,255,0.12)',
           backdropFilter: 'blur(8px)',
