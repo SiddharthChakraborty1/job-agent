@@ -17,20 +17,24 @@ export function SkillGapSummary({ gaps }: SkillGapSummaryProps) {
     <Paper
       variant="outlined"
       sx={{
-        mb: 2,
-        p: 2,
+        mb: { xs: 1, sm: 2 },
+        p: { xs: 1.25, sm: 2 },
         flexShrink: 0,
         bgcolor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
       }}
     >
-      <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center' }}>
+      <Stack direction="row" spacing={1} sx={{ mb: { xs: 0.75, sm: 1 }, alignItems: 'center' }}>
         <SchoolOutlinedIcon color="primary" fontSize="small" />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: { xs: '0.95rem', sm: '1rem' } }}>
           Skill gaps across matched jobs
         </Typography>
       </Stack>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ display: { xs: 'none', sm: 'block' }, mb: 1.5 }}
+      >
         Skills that show up often in these postings but look weak or missing on your resume —
         good candidates to learn or highlight.
       </Typography>

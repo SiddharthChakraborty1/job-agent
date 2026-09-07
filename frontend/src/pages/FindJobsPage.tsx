@@ -56,7 +56,15 @@ export function FindJobsPage({ userSub, pipeline }: FindJobsPageProps) {
       {status === 'running' && <ProgressIndicator message={progress} onCancel={cancel} />}
 
       {status === 'done' && (
-        <>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           <ResultsTable
             validated={validated}
             unscored={unscored}
@@ -70,18 +78,30 @@ export function FindJobsPage({ userSub, pipeline }: FindJobsPageProps) {
             savedAt={savedAt}
             city={cities.join(', ')}
           />
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: { xs: 1.5, sm: 2 },
+              pt: { xs: 1, sm: 0 },
+              flexShrink: 0,
+              borderTop: (theme) =>
+                `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+            }}
+          >
             <Button
               variant="outlined"
               color="primary"
               startIcon={<RefreshIcon />}
               onClick={reset}
               size="large"
+              fullWidth
+              sx={{ maxWidth: { sm: 280 } }}
             >
               Search again
             </Button>
           </Box>
-        </>
+        </Box>
       )}
     </AppShell>
   );
