@@ -179,7 +179,7 @@ export function ResultsTable({
       }}
     >
       {fromSaved && savedLabel && (
-        <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
+        <Alert severity="info" sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}>
           Showing your last search from {savedLabel}
           {city ? ` · ${city}` : ''}. Run a new search to refresh.
           {typeof newSinceLastCount === 'number' && newSinceLastCount > 0
@@ -192,7 +192,7 @@ export function ResultsTable({
         <Alert
           severity="success"
           icon={<FiberNewOutlinedIcon />}
-          sx={{ mb: 2, flexShrink: 0 }}
+          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}
         >
           {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last
           search
@@ -201,7 +201,11 @@ export function ResultsTable({
       )}
 
       {warnings.length > 0 && (
-        <Alert severity="warning" role="status" sx={{ mb: 2, flexShrink: 0 }}>
+        <Alert
+          severity="warning"
+          role="status"
+          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}
+        >
           {warnings.map((w, i) => (
             <Typography key={i} variant="body2" sx={{ mt: i === 0 ? 0 : 0.5 }}>
               {w}
@@ -214,9 +218,9 @@ export function ResultsTable({
 
       {!isEmpty && (
         <Stack
-          direction={{ xs: 'column', sm: 'row' }}
+          direction={{ xs: 'row', sm: 'row' }}
           spacing={1}
-          sx={{ mb: 2, flexShrink: 0 }}
+          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0 }}
         >
           <Button
             variant="outlined"
@@ -266,18 +270,47 @@ export function ResultsTable({
         <Box
           sx={{
             flex: 1,
-            minHeight: 0,
+            minHeight: { xs: '52dvh', sm: 0 },
             overflow: 'auto',
-            pr: 0.5,
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            pr: { xs: 0.25, sm: 0.75 },
+            mr: { xs: -0.25, sm: -0.25 },
+            scrollPaddingBottom: 16,
+            scrollbarWidth: 'thin',
+            scrollbarColor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255,255,255,0.28) transparent'
+                : 'rgba(15,23,42,0.28) transparent',
+            '&::-webkit-scrollbar': {
+              width: 6,
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+              marginBlock: 4,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 999,
+              backgroundColor: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(255,255,255,0.28)'
+                  : 'rgba(15,23,42,0.28)',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(255,255,255,0.42)'
+                  : 'rgba(15,23,42,0.42)',
+            },
           }}
         >
           {sortedValidated.length > 0 && (
-            <Box component="section" aria-labelledby="validated-heading" sx={{ mb: 4 }}>
+            <Box component="section" aria-labelledby="validated-heading" sx={{ mb: { xs: 3, sm: 4 } }}>
               <Typography
                 id="validated-heading"
                 variant="h5"
                 component="h2"
-                sx={{ mb: 2, fontWeight: 600 }}
+                sx={{ mb: { xs: 1.25, sm: 2 }, fontWeight: 600, fontSize: { xs: '1.15rem', sm: '1.5rem' } }}
               >
                 Matched Jobs
                 <Chip label={sortedValidated.length} size="small" color="primary" sx={{ ml: 1.5 }} />

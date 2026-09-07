@@ -33,8 +33,8 @@ export function AppShell({ children, fillMain = false }: AppShellProps) {
         component="header"
         sx={{
           flexShrink: 0,
-          pt: { xs: 3, md: 4 },
-          pb: { xs: 2, md: 2.5 },
+          pt: { xs: fillMain ? 1.5 : 2.5, sm: 3, md: 4 },
+          pb: { xs: fillMain ? 1 : 1.5, sm: 2, md: 2.5 },
           px: 2,
           textAlign: 'center',
           background: (theme) =>
@@ -57,26 +57,30 @@ export function AppShell({ children, fillMain = false }: AppShellProps) {
         <Container maxWidth="md" sx={{ position: 'relative' }}>
           <Box
             sx={{
-              display: 'inline-flex',
+              display: { xs: fillMain ? 'none' : 'inline-flex', sm: 'inline-flex' },
               alignItems: 'center',
               justifyContent: 'center',
-              width: 56,
-              height: 56,
+              width: { xs: 44, sm: 56 },
+              height: { xs: 44, sm: 56 },
               borderRadius: '50%',
               bgcolor: 'rgba(255,255,255,0.15)',
               backdropFilter: 'blur(8px)',
-              mb: 1.5,
+              mb: { xs: 1, sm: 1.5 },
             }}
           >
-            <WorkOutlineOutlinedIcon sx={{ fontSize: 28 }} />
+            <WorkOutlineOutlinedIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
           </Box>
           <Typography
             variant="h3"
             component="h1"
             sx={{
               fontWeight: 700,
-              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.35rem' },
-              mb: 0.75,
+              fontSize: {
+                xs: fillMain ? '1.15rem' : '1.35rem',
+                sm: '2rem',
+                md: '2.35rem',
+              },
+              mb: { xs: fillMain ? 0.5 : 0.75, sm: 0.75 },
             }}
           >
             Resume Job Finder
@@ -84,11 +88,13 @@ export function AppShell({ children, fillMain = false }: AppShellProps) {
           <Typography
             variant="body2"
             sx={{
+              display: { xs: fillMain ? 'none' : 'block', sm: 'block' },
               maxWidth: 480,
               mx: 'auto',
               opacity: 0.92,
               lineHeight: 1.5,
-              mb: 2,
+              mb: { xs: 1.25, sm: 2 },
+              fontSize: { xs: '0.85rem', sm: '0.875rem' },
             }}
           >
             Upload your resume to find matching roles across startups, mid-level companies, and
@@ -103,11 +109,13 @@ export function AppShell({ children, fillMain = false }: AppShellProps) {
               indicator: { style: { backgroundColor: 'white' } },
             }}
             sx={{
-              minHeight: 40,
+              minHeight: { xs: 36, sm: 40 },
               '& .MuiTab-root': {
                 color: 'rgba(255,255,255,0.75)',
-                minHeight: 40,
+                minHeight: { xs: 36, sm: 40 },
                 fontWeight: 600,
+                fontSize: { xs: '0.85rem', sm: '0.875rem' },
+                px: { xs: 1.5, sm: 2 },
               },
               '& .Mui-selected': { color: 'white' },
             }}
@@ -125,7 +133,7 @@ export function AppShell({ children, fillMain = false }: AppShellProps) {
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          py: { xs: 3, md: 4 },
+          py: { xs: fillMain ? 1.5 : 2.5, sm: 3, md: 4 },
           overflow: fillMain ? 'hidden' : 'auto',
         }}
       >
