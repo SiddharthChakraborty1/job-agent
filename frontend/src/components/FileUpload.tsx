@@ -2,10 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import { alpha } from '@mui/material/styles';
+import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import SearchIcon from '@mui/icons-material/Search';
@@ -102,97 +105,130 @@ export function FileUpload({
   };
 
   return (
-    <Box sx={{ maxWidth: 520, mx: 'auto' }}>
-      <Paper
-        role="button"
-        tabIndex={0}
-        aria-label="Upload resume — drag and drop or click to browse"
-        elevation={isDragging ? 8 : 2}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        sx={{
-          p: { xs: 3, sm: 4 },
-          textAlign: 'center',
-          cursor: 'pointer',
-          border: 2,
-          borderStyle: 'dashed',
-          borderColor: isDragging ? 'primary.main' : 'divider',
-          bgcolor: isDragging ? (theme) => theme.palette.action.selected : 'background.paper',
-          transition: 'all 0.25s ease',
-          '&:hover': {
-            borderColor: 'primary.light',
-            bgcolor: (theme) => theme.palette.action.hover,
-            transform: 'translateY(-2px)',
-            boxShadow: 4,
-          },
-        }}
-      >
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        borderRadius: 4,
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+        boxShadow: (theme) =>
+          theme.palette.mode === 'dark'
+            ? '0 20px 48px rgba(0,0,0,0.45)'
+            : '0 20px 48px rgba(15,23,42,0.07)',
+      }}
+    >
+      {selectedFile ? (
         <Box
           sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 72,
-            height: 72,
-            borderRadius: '50%',
-            bgcolor: 'primary.main',
-            color: 'white',
-            mb: 2,
-            opacity: isDragging ? 1 : 0.9,
-          }}
-        >
-          <CloudUploadOutlinedIcon sx={{ fontSize: 36 }} />
-        </Box>
-        <Typography variant="body1" color="text.primary" sx={{ mb: 0.5 }}>
-          Drag &amp; drop your resume here, or{' '}
-          <Typography component="span" color="primary" sx={{ fontWeight: 600 }}>
-            click to browse
-          </Typography>
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Accepted: PDF, TXT · Max 5 MB
-        </Typography>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.txt,application/pdf,text/plain"
-          style={{ display: 'none' }}
-          onChange={handleInputChange}
-          aria-hidden="true"
-        />
-      </Paper>
-
-      {fileError && (
-        <Alert severity="error" role="alert" sx={{ mt: 2 }}>
-          {fileError}
-        </Alert>
-      )}
-
-      {selectedFile && (
-        <Paper
-          variant="outlined"
-          sx={{
-            mt: 2,
-            p: 1.5,
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            bgcolor: 'background.paper',
+            p: 1.5,
+            borderRadius: 3,
+            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.05),
           }}
         >
-          <DescriptionOutlinedIcon color="primary" />
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: 2,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'primary.main',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+              flexShrink: 0,
+            }}
+          >
+            <DescriptionOutlinedIcon sx={{ fontSize: 20 }} />
+          </Box>
           <Box sx={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
               {selectedFile.name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatSize(selectedFile.size)}
+              {formatSize(selectedFile.size)} · ready to analyse
             </Typography>
           </Box>
-        </Paper>
+          <IconButton
+            size="small"
+            aria-label="Remove selected resume"
+            onClick={() => setSelectedFile(null)}
+            sx={{ color: 'text.secondary' }}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
+      ) : (
+        <Box
+          role="button"
+          tabIndex={0}
+          aria-label="Upload resume — drag and drop or click to browse"
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          sx={{
+            py: { xs: 3.5, sm: 4.5 },
+            px: 2,
+            textAlign: 'center',
+            cursor: 'pointer',
+            borderRadius: 3,
+            border: '1.5px dashed',
+            borderColor: (theme) =>
+              isDragging ? theme.palette.primary.main : theme.palette.divider,
+            bgcolor: (theme) =>
+              isDragging ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+            transition: 'border-color 0.2s ease, background-color 0.2s ease',
+            '&:hover': {
+              borderColor: 'primary.main',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              color: 'primary.main',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+              mb: 1.5,
+            }}
+          >
+            <CloudUploadOutlinedIcon sx={{ fontSize: 26 }} />
+          </Box>
+          <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Drop your resume here, or{' '}
+            <Box component="span" sx={{ color: 'primary.main' }}>
+              browse
+            </Box>
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            PDF or TXT · up to 5 MB
+          </Typography>
+        </Box>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.txt,application/pdf,text/plain"
+        style={{ display: 'none' }}
+        onChange={handleInputChange}
+        aria-hidden="true"
+      />
+
+      {fileError && (
+        <Alert severity="error" role="alert" sx={{ mt: 2 }}>
+          {fileError}
+        </Alert>
       )}
 
       <Autocomplete
@@ -216,17 +252,16 @@ export function FileUpload({
           }
           setCities(unique);
         }}
-        getOptionDisabled={(option) =>
-          cities.length >= MAX_CITIES && !cities.includes(option)
-        }
+        getOptionDisabled={(option) => cities.length >= MAX_CITIES && !cities.includes(option)}
         disabled={disabled}
-        sx={{ mt: 2 }}
+        size="small"
+        sx={{ mt: 2.5 }}
         renderInput={(params) => (
           <TextField
             {...params}
             label="Preferred cities"
             placeholder={cities.length >= MAX_CITIES ? '' : 'e.g. Bangalore'}
-            helperText={`Select up to ${MAX_CITIES} cities. Leave blank to infer from the resume.`}
+            helperText={`Up to ${MAX_CITIES} cities · leave blank to infer from your resume`}
           />
         )}
       />
@@ -240,10 +275,10 @@ export function FileUpload({
         onClick={handleSubmit}
         disabled={!selectedFile || disabled}
         aria-disabled={!selectedFile || disabled}
-        sx={{ mt: 2.5, py: 1.5 }}
+        sx={{ mt: 2 }}
       >
-        Find Jobs
+        Find matching jobs
       </Button>
-    </Box>
+    </Paper>
   );
 }

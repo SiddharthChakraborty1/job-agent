@@ -3,13 +3,13 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
-import FiberNewOutlinedIcon from '@mui/icons-material/FiberNewOutlined';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { JobCard } from './JobCard';
 import { SkillGapSummary } from './SkillGapSummary';
 import {
@@ -27,6 +27,7 @@ interface ResultsTableProps {
   newSinceLastCount?: number | null;
   applicationStatuses: Record<string, ApplicationStatus>;
   onStatusChange: (jobUrl: string, status: ApplicationStatus) => void;
+  onNewSearch?: () => void;
   fromSaved?: boolean;
   savedAt?: string | null;
   city?: string;
@@ -114,33 +115,6 @@ function formatSavedAt(savedAt: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString();
 }
 
-const scrollSx = {
-  flex: '1 1 0%',
-  minHeight: 0,
-  overflowY: 'auto',
-  overflowX: 'hidden',
-  overscrollBehavior: 'contain',
-  WebkitOverflowScrolling: 'touch',
-  pr: 0.75,
-  scrollPaddingBottom: 16,
-  scrollbarWidth: 'thin',
-  scrollbarColor: (theme: { palette: { mode: string } }) =>
-    theme.palette.mode === 'dark'
-      ? 'rgba(255,255,255,0.35) transparent'
-      : 'rgba(15,23,42,0.3) transparent',
-  '&::-webkit-scrollbar': { width: 8 },
-  '&::-webkit-scrollbar-track': { background: 'transparent' },
-  '&::-webkit-scrollbar-thumb': {
-    borderRadius: 999,
-    backgroundColor: (theme: { palette: { mode: string } }) =>
-      theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.32)' : 'rgba(15,23,42,0.3)',
-  },
-  '&::-webkit-scrollbar-thumb:hover': {
-    backgroundColor: (theme: { palette: { mode: string } }) =>
-      theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.45)',
-  },
-} as const;
-
 export function ResultsTable({
   validated,
   unscored,
@@ -150,6 +124,7 @@ export function ResultsTable({
   newSinceLastCount = null,
   applicationStatuses,
   onStatusChange,
+  onNewSearch,
   fromSaved = false,
   savedAt,
   city,
@@ -163,9 +138,17 @@ export function ResultsTable({
     [sortedValidated, sortedUnscored]
   );
   const newUrlSet = useMemo(() => new Set(newJobUrls), [newJobUrls]);
-  const savedLabel = formatSavedAt(savedAt);
-  const showDelta =
-    typeof newSinceLastCount === 'number' && newSinceLastCount > 0 && !fromSaved;
+  const total = sortedValidated.length + sortedUnscored.length;
+
+  const metaParts: string[] = [];
+  if (city) metaParts.push(city);
+  if (fromSaved) {
+    const label = formatSavedAt(savedAt);
+    if (label) metaParts.push(`saved ${label}`);
+  }
+  if (typeof newSinceLastCount === 'number' && newSinceLastCount > 0) {
+    metaParts.push(`${newSinceLastCount} new since last run`);
+  }
 
   const handleExport = () => {
     const blob = new Blob([toCsv(sortedValidated, sortedUnscored, applicationStatuses)], {
@@ -202,42 +185,83 @@ export function ResultsTable({
         flexDirection: 'column',
         flex: '1 1 0%',
         minHeight: 0,
-        overflow: 'hidden',
       }}
     >
-      {fromSaved && savedLabel && (
-        <Alert
-          severity="info"
-          sx={{
-            mb: 1,
-            flexShrink: 0,
-            py: 0.25,
-            '& .MuiAlert-message': { fontSize: '0.8rem' },
-          }}
-        >
-          Last search · {savedLabel}
-          {city ? ` · ${city}` : ''}
-          {typeof newSinceLastCount === 'number' && newSinceLastCount > 0
-            ? ` · ${newSinceLastCount} new`
-            : ''}
-        </Alert>
-      )}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+          flexShrink: 0,
+          mb: 1.25,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" component="h2" sx={{ fontSize: '1.05rem' }}>
+              {isEmpty ? 'No matches' : `${total} matching role${total === 1 ? '' : 's'}`}
+            </Typography>
+            {sortedUnscored.length > 0 && (
+              <Chip label={`${sortedUnscored.length} unscored`} size="small" variant="outlined" />
+            )}
+          </Box>
+          {metaParts.length > 0 && (
+            <Typography variant="caption" color="text.secondary" noWrap component="div">
+              {metaParts.join(' · ')}
+            </Typography>
+          )}
+        </Box>
 
-      {showDelta && (
-        <Alert
-          severity="success"
-          icon={<FiberNewOutlinedIcon fontSize="inherit" />}
-          sx={{ mb: 1, flexShrink: 0, py: 0.25, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
-        >
-          {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last search
-        </Alert>
-      )}
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+          {!isEmpty && (
+            <>
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="small"
+                startIcon={<DownloadOutlinedIcon sx={{ fontSize: 17 }} />}
+                onClick={handleExport}
+                sx={{ color: 'text.secondary' }}
+              >
+                CSV
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="small"
+                startIcon={<ContentCopyIcon sx={{ fontSize: 16 }} />}
+                onClick={() => void handleCopy()}
+                disabled={urls.length === 0}
+                sx={{ color: 'text.secondary' }}
+              >
+                {copyState === 'copied'
+                  ? 'Copied'
+                  : copyState === 'failed'
+                    ? 'Failed'
+                    : 'Copy links'}
+              </Button>
+            </>
+          )}
+          {onNewSearch && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<RefreshIcon sx={{ fontSize: 17 }} />}
+              onClick={onNewSearch}
+            >
+              New search
+            </Button>
+          )}
+        </Stack>
+      </Box>
 
       {warnings.length > 0 && (
         <Alert
           severity="warning"
           role="status"
-          sx={{ mb: 1, flexShrink: 0, py: 0.25, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
+          sx={{ mb: 1.25, flexShrink: 0, py: 0.25, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
         >
           {warnings.map((w, i) => (
             <Typography key={i} variant="body2" sx={{ mt: i === 0 ? 0 : 0.5, fontSize: 'inherit' }}>
@@ -249,92 +273,60 @@ export function ResultsTable({
 
       {!isEmpty && <SkillGapSummary gaps={skillGaps} />}
 
-      {!isEmpty && (
-        <Stack direction="row" spacing={1} sx={{ mb: 1, flexShrink: 0 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DownloadOutlinedIcon />}
-            onClick={handleExport}
-          >
-            Export CSV
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<ContentCopyIcon />}
-            onClick={() => void handleCopy()}
-            disabled={urls.length === 0}
-          >
-            {copyState === 'copied'
-              ? 'Copied'
-              : copyState === 'failed'
-                ? 'Copy failed'
-                : 'Copy links'}
-          </Button>
-        </Stack>
-      )}
-
       {isEmpty ? (
-        <Paper
+        <Box
           role="status"
-          elevation={0}
           sx={{
             textAlign: 'center',
-            py: 6,
+            py: 8,
             px: 2,
-            bgcolor: 'background.default',
-            borderRadius: 3,
+            borderRadius: 4,
+            border: (theme) => `1px dashed ${theme.palette.divider}`,
           }}
         >
-          <SearchOffOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <SearchOffOutlinedIcon sx={{ fontSize: 44, color: 'text.disabled', mb: 1 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No matching jobs found
           </Typography>
           <Typography variant="body2" color="text.disabled">
             Try a different city or resume, then search again.
           </Typography>
-        </Paper>
+        </Box>
       ) : (
-        <Box sx={scrollSx}>
-          {sortedValidated.length > 0 && (
-            <Box component="section" aria-labelledby="validated-heading" sx={{ mb: 3 }}>
-              <Typography
-                id="validated-heading"
-                variant="h5"
-                component="h2"
-                sx={{ mb: 1.25, fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-              >
-                Matched Jobs
-                <Chip label={sortedValidated.length} size="small" color="primary" sx={{ ml: 1.5 }} />
-              </Typography>
-              {sortedValidated.map((job) => (
-                <JobCard
-                  key={job.job_url}
-                  job={job}
-                  scored
-                  isNew={newUrlSet.has(job.job_url)}
-                  applicationStatus={statusFor(job.job_url)}
-                  onStatusChange={onStatusChange}
-                />
-              ))}
-            </Box>
-          )}
+        <Box
+          sx={{
+            flex: '1 1 0%',
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            pr: 0.5,
+            pb: 1,
+          }}
+        >
+          {sortedValidated.map((job) => (
+            <JobCard
+              key={job.job_url}
+              job={job}
+              scored
+              isNew={newUrlSet.has(job.job_url)}
+              applicationStatus={statusFor(job.job_url)}
+              onStatusChange={onStatusChange}
+            />
+          ))}
 
           {sortedUnscored.length > 0 && (
-            <Box component="section" aria-labelledby="unscored-heading">
-              <Typography
-                id="unscored-heading"
-                variant="h5"
-                component="h2"
-                sx={{ mb: 0.5, fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-              >
-                Unscored Jobs
-                <Chip label={sortedUnscored.length} size="small" sx={{ ml: 1.5 }} />
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                These listings could not be scored against your resume.
-              </Typography>
+            <Box component="section" aria-labelledby="unscored-heading" sx={{ mt: 2 }}>
+              <Divider sx={{ mb: 1.75 }}>
+                <Typography
+                  id="unscored-heading"
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                >
+                  Could not be scored
+                </Typography>
+              </Divider>
               {sortedUnscored.map((job) => (
                 <JobCard
                   key={job.job_url}

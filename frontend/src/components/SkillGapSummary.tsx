@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import type { SkillGap } from '../types';
@@ -16,57 +19,60 @@ function gapsKey(gaps: SkillGap[]): string {
 }
 
 export function SkillGapSummary({ gaps }: SkillGapSummaryProps) {
-  const [dismissed, setDismissed] = useState(false);
+  // Keyed by content so a new set of gaps reappears after a dismissal.
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const key = gapsKey(gaps);
 
-  useEffect(() => {
-    setDismissed(false);
-  }, [key]);
-
-  if (gaps.length === 0 || dismissed) return null;
+  if (gaps.length === 0 || dismissedKey === key) return null;
 
   return (
-    <Stack
-      direction="row"
-      spacing={1}
-      useFlexGap
+    <Box
       sx={{
-        flexWrap: 'wrap',
+        display: 'flex',
         alignItems: 'center',
+        gap: 1.25,
         flexShrink: 0,
-        mb: 1,
-        py: 0.5,
-        pl: 1,
-        pr: 0.5,
-        borderRadius: 2,
-        border: (theme) =>
-          `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`,
-        bgcolor: (theme) =>
-          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+        mb: 1.25,
+        py: 0.85,
+        pl: 1.25,
+        pr: 0.75,
+        borderRadius: 3,
+        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
+        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
       }}
     >
-      <SchoolOutlinedIcon color="primary" sx={{ fontSize: 18 }} />
-      <Typography variant="body2" sx={{ fontWeight: 600, mr: 0.5 }}>
-        Skill gaps
+      <SchoolOutlinedIcon color="primary" sx={{ fontSize: 18, flexShrink: 0 }} />
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 600, flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
+      >
+        Skills to add
       </Typography>
-      {gaps.map((gap) => (
-        <Chip
-          key={gap.skill}
-          label={`${gap.skill} (${gap.percentage}%)`}
-          color="primary"
-          variant="outlined"
-          size="small"
-          sx={{ fontWeight: 500, height: 24 }}
-        />
-      ))}
+      <Stack
+        direction="row"
+        spacing={0.75}
+        useFlexGap
+        sx={{ flexWrap: 'wrap', flex: 1, minWidth: 0 }}
+      >
+        {gaps.map((gap) => (
+          <Tooltip key={gap.skill} title={`Appears in ${gap.percentage}% of matched jobs`}>
+            <Chip
+              label={`${gap.skill} · ${gap.percentage}%`}
+              color="primary"
+              variant="outlined"
+              size="small"
+            />
+          </Tooltip>
+        ))}
+      </Stack>
       <IconButton
         size="small"
         aria-label="Dismiss skill gaps"
-        onClick={() => setDismissed(true)}
-        sx={{ ml: 'auto', p: 0.5 }}
+        onClick={() => setDismissedKey(key)}
+        sx={{ p: 0.5, color: 'text.disabled', flexShrink: 0 }}
       >
         <CloseIcon sx={{ fontSize: 16 }} />
       </IconButton>
-    </Stack>
+    </Box>
   );
 }
