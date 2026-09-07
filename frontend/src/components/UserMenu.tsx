@@ -1,5 +1,6 @@
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
+import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -18,29 +19,23 @@ export function UserMenu() {
   const open = Boolean(anchorEl);
 
   return (
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 8,
-        left: { xs: 8, md: 12 },
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-      }}
-    >
-      <Tooltip title="Account">
+    <>
+      <Tooltip title={user.name}>
         <IconButton
           onClick={(event) => setAnchorEl(event.currentTarget)}
           aria-label="Open account menu"
+          size="small"
           sx={{
-            color: 'white',
-            bgcolor: 'rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.22)' },
+            p: 0.25,
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            '&:hover': { bgcolor: 'action.hover' },
           }}
         >
-          <Avatar src={user.picture ?? undefined} alt={user.name} sx={{ width: 28, height: 28 }}>
+          <Avatar
+            src={user.picture ?? undefined}
+            alt={user.name}
+            sx={{ width: 28, height: 28, fontSize: '0.85rem', fontWeight: 600 }}
+          >
             {user.name.charAt(0).toUpperCase()}
           </Avatar>
         </IconButton>
@@ -50,25 +45,29 @@ export function UserMenu() {
         anchorEl={anchorEl}
         open={open}
         onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { mt: 1, minWidth: 220 } } }}
       >
-        <Box sx={{ px: 2, py: 1.5, maxWidth: 260 }}>
-          <Typography variant="subtitle2">{user.name}</Typography>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ px: 2, py: 1.25, maxWidth: 280 }}>
+          <Typography variant="subtitle2" noWrap>
+            {user.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap component="div">
             {user.email}
           </Typography>
         </Box>
+        <Divider sx={{ my: 0.5 }} />
         <MenuItem
           onClick={() => {
             setAnchorEl(null);
             void logout();
           }}
         >
-          <LogoutOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+          <LogoutOutlinedIcon fontSize="small" sx={{ mr: 1.25, fontSize: 18 }} />
           Sign out
         </MenuItem>
       </Menu>
-    </Box>
+    </>
   );
 }

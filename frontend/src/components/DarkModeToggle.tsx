@@ -13,20 +13,20 @@ export function DarkModeToggle() {
       <IconButton
         onClick={toggleColorMode}
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        size="small"
         sx={{
-          position: 'absolute',
-          top: 8,
-          right: { xs: 8, md: 12 },
-          color: 'white',
-          bgcolor: 'rgba(255,255,255,0.12)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          '&:hover': {
-            bgcolor: 'rgba(255,255,255,0.22)',
-          },
+          width: 34,
+          height: 34,
+          color: 'text.secondary',
+          border: (theme) => `1px solid ${theme.palette.divider}`,
+          '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
         }}
       >
-        {isDark ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+        {isDark ? (
+          <LightModeOutlinedIcon sx={{ fontSize: 18 }} />
+        ) : (
+          <DarkModeOutlinedIcon sx={{ fontSize: 18 }} />
+        )}
       </IconButton>
     </Tooltip>
   );

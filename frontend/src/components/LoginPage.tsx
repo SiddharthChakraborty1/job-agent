@@ -1,13 +1,22 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
+import { alpha } from '@mui/material/styles';
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import TrackChangesOutlinedIcon from '@mui/icons-material/TrackChangesOutlined';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { BrandMark } from './BrandMark';
 import { DarkModeToggle } from './DarkModeToggle';
 import { ErrorBanner } from './ErrorBanner';
 import { useAuth } from '../context/AuthContext';
+
+const HIGHLIGHTS = [
+  { icon: BoltOutlinedIcon, text: 'One resume upload, jobs from every company tier' },
+  { icon: TrackChangesOutlinedIcon, text: 'Every role scored against your experience' },
+  { icon: InsightsOutlinedIcon, text: 'Skill gaps and application tracking built in' },
+];
 
 export function LoginPage() {
   const { login, error, clearError } = useAuth();
@@ -20,76 +29,58 @@ export function LoginPage() {
   return (
     <Box
       sx={{
-        minHeight: '100dvh',
+        height: '100dvh',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        background: (theme) =>
-          `linear-gradient(180deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 40%)`,
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: 2,
+        py: 4,
+        position: 'relative',
+        bgcolor: 'background.default',
+        backgroundImage: (theme) =>
+          `radial-gradient(60% 45% at 50% 0%, ${alpha(theme.palette.primary.main, 0.18)} 0%, transparent 70%)`,
       }}
     >
-      <Box
-        component="header"
-        sx={{
-          pt: { xs: 4, md: 6 },
-          pb: { xs: 3, md: 4 },
-          px: 2,
-          textAlign: 'center',
-          background: (theme) =>
-            `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.secondary.main} 100%)`,
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
         <DarkModeToggle />
-        <Container maxWidth="sm" sx={{ position: 'relative' }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(8px)',
-              mb: 2,
-            }}
-          >
-            <WorkOutlineOutlinedIcon sx={{ fontSize: 32 }} />
-          </Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1.5 }}>
-            Resume Job Finder
-          </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.92 }}>
-            Sign in to upload your resume and find matching roles.
-          </Typography>
-        </Container>
       </Box>
 
-      <Container maxWidth="sm" sx={{ flex: 1, py: 6 }}>
-        {error && (
-          <Box sx={{ mb: 3 }}>
-            <ErrorBanner message={error} onDismiss={clearError} />
-          </Box>
-        )}
+      <Box sx={{ width: '100%', maxWidth: 420 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <BrandMark size={38} />
+        </Box>
+
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ textAlign: 'center', fontSize: { xs: '1.6rem', sm: '2rem' }, mb: 1 }}
+        >
+          Job hunting, minus the scrolling
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ textAlign: 'center', mb: 3, fontSize: '0.95rem' }}
+        >
+          Sign in to upload your resume and get roles ranked by how well they match.
+        </Typography>
+
+        {error && <ErrorBanner message={error} onDismiss={clearError} />}
 
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 3, sm: 4 },
-            borderRadius: 3,
+            p: { xs: 2.5, sm: 3 },
+            borderRadius: 4,
             border: (theme) => `1px solid ${theme.palette.divider}`,
-            textAlign: 'center',
+            boxShadow: (theme) =>
+              theme.palette.mode === 'dark'
+                ? '0 24px 56px rgba(0,0,0,0.5)'
+                : '0 24px 56px rgba(15,23,42,0.08)',
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            Sign in to continue
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Use your Google account. We only use your name and email to identify your session.
-          </Typography>
-
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <GoogleLogin
               onSuccess={handleSuccess}
@@ -98,11 +89,53 @@ export function LoginPage() {
               theme="outline"
               size="large"
               text="signin_with"
-              shape="rectangular"
+              shape="pill"
             />
           </Box>
+
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{ display: 'block', textAlign: 'center', mt: 1.5 }}
+          >
+            We only use your name and email to identify your session.
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 3,
+              pt: 2.5,
+              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
+            {HIGHLIGHTS.map(({ icon: Icon, text }) => (
+              <Box key={text} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 2,
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'primary.main',
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                  }}
+                >
+                  <Icon sx={{ fontSize: 16 }} />
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {text}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         </Paper>
-      </Container>
+      </Box>
     </Box>
   );
 }

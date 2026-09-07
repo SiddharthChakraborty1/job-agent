@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import Chip from '@mui/material/Chip';
+import Typography from '@mui/material/Typography';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { FileUpload } from '../components/FileUpload';
 import { ProgressIndicator } from '../components/ProgressIndicator';
 import { ResultsTable } from '../components/ResultsTable';
@@ -43,64 +44,65 @@ export function FindJobsPage({ userSub, pipeline }: FindJobsPageProps) {
     [startStream]
   );
 
+  const showUpload = status === 'idle' || status === 'error';
+
   return (
     <AppShell fillMain={status === 'done'}>
-      {status === 'error' && error && (
-        <ErrorBanner message={error} onDismiss={dismissError} />
+      {status === 'error' && error && <ErrorBanner message={error} onDismiss={dismissError} />}
+
+      {showUpload && (
+        <Box sx={{ width: '100%', maxWidth: 560, mx: 'auto' }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Chip
+              icon={<AutoAwesomeIcon sx={{ fontSize: 15 }} />}
+              label="AI resume matching"
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ mb: 1.5 }}
+            />
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{ fontSize: { xs: '1.6rem', sm: '2.1rem' }, mb: 1 }}
+            >
+              Find roles that fit your resume
+            </Typography>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ maxWidth: 420, mx: 'auto', fontSize: '0.95rem' }}
+            >
+              Upload your resume once. We search startups, mid-size companies, and enterprises,
+              then score every role against your experience.
+            </Typography>
+          </Box>
+
+          <FileUpload onSubmit={handleSubmit} userSub={userSub} initialCities={cities} />
+        </Box>
       )}
 
-      {(status === 'idle' || status === 'error') && (
-        <FileUpload onSubmit={handleSubmit} userSub={userSub} initialCities={cities} />
+      {status === 'running' && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', pt: { sm: 2 } }}>
+          <ProgressIndicator message={progress} onCancel={cancel} />
+        </Box>
       )}
-
-      {status === 'running' && <ProgressIndicator message={progress} onCancel={cancel} />}
 
       {status === 'done' && (
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          <ResultsTable
-            validated={validated}
-            unscored={unscored}
-            warnings={warnings}
-            skillGaps={skillGaps}
-            newJobUrls={newJobUrls}
-            newSinceLastCount={newSinceLastCount}
-            applicationStatuses={applicationStatuses}
-            onStatusChange={updateApplicationStatus}
-            fromSaved={fromSaved}
-            savedAt={savedAt}
-            city={cities.join(', ')}
-          />
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              mt: 1,
-              pt: 1,
-              flexShrink: 0,
-              borderTop: (theme) =>
-                `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-            }}
-          >
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<RefreshIcon />}
-              onClick={reset}
-              size="small"
-              sx={{ minWidth: 160 }}
-            >
-              Search again
-            </Button>
-          </Box>
-        </Box>
+        <ResultsTable
+          validated={validated}
+          unscored={unscored}
+          warnings={warnings}
+          skillGaps={skillGaps}
+          newJobUrls={newJobUrls}
+          newSinceLastCount={newSinceLastCount}
+          applicationStatuses={applicationStatuses}
+          onStatusChange={updateApplicationStatus}
+          onNewSearch={reset}
+          fromSaved={fromSaved}
+          savedAt={savedAt}
+          city={cities.join(', ')}
+        />
       )}
     </AppShell>
   );

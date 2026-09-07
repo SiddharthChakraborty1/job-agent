@@ -1,5 +1,4 @@
 import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 
 interface ErrorBannerProps {
   message: string;
@@ -12,9 +11,8 @@ export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
       role="alert"
       severity="error"
       onClose={onDismiss}
-      sx={{ mb: 3, maxWidth: 720, mx: 'auto' }}
+      sx={{ mb: 2, maxWidth: 720, mx: 'auto', width: '100%' }}
     >
-      <AlertTitle>Something went wrong</AlertTitle>
       {message}
     </Alert>
   );
