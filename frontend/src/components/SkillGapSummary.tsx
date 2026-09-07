@@ -1,8 +1,9 @@
-import Box from '@mui/material/Box';
+import { useEffect, useState } from 'react';
 import Chip from '@mui/material/Chip';
-import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import CloseIcon from '@mui/icons-material/Close';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import type { SkillGap } from '../types';
 
@@ -10,51 +11,62 @@ interface SkillGapSummaryProps {
   gaps: SkillGap[];
 }
 
+function gapsKey(gaps: SkillGap[]): string {
+  return gaps.map((g) => `${g.skill}:${g.percentage}`).join('|');
+}
+
 export function SkillGapSummary({ gaps }: SkillGapSummaryProps) {
-  if (gaps.length === 0) return null;
+  const [dismissed, setDismissed] = useState(false);
+  const key = gapsKey(gaps);
+
+  useEffect(() => {
+    setDismissed(false);
+  }, [key]);
+
+  if (gaps.length === 0 || dismissed) return null;
 
   return (
-    <Paper
-      variant="outlined"
+    <Stack
+      direction="row"
+      spacing={1}
+      useFlexGap
       sx={{
-        mb: { xs: 1, sm: 1.25 },
-        p: { xs: 1.25, sm: 1.5 },
+        flexWrap: 'wrap',
+        alignItems: 'center',
         flexShrink: 0,
+        mb: 1,
+        py: 0.5,
+        pl: 1,
+        pr: 0.5,
+        borderRadius: 2,
+        border: (theme) =>
+          `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`,
         bgcolor: (theme) =>
           theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-        '@media (max-height: 900px)': { mb: 1, p: 1.25 },
       }}
     >
-      <Stack direction="row" spacing={1} sx={{ mb: { xs: 0.75, sm: 1 }, alignItems: 'center' }}>
-        <SchoolOutlinedIcon color="primary" fontSize="small" />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-          Skill gaps across matched jobs
-        </Typography>
-      </Stack>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{
-          display: { xs: 'none', lg: 'block' },
-          mb: 1.5,
-          '@media (max-height: 900px)': { display: 'none' },
-        }}
-      >
-        Skills that show up often in these postings but look weak or missing on your resume —
-        good candidates to learn or highlight.
+      <SchoolOutlinedIcon color="primary" sx={{ fontSize: 18 }} />
+      <Typography variant="body2" sx={{ fontWeight: 600, mr: 0.5 }}>
+        Skill gaps
       </Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        {gaps.map((gap) => (
-          <Chip
-            key={gap.skill}
-            label={`${gap.skill} (${gap.percentage}%)`}
-            color="primary"
-            variant="outlined"
-            size="small"
-            sx={{ fontWeight: 500 }}
-          />
-        ))}
-      </Box>
-    </Paper>
+      {gaps.map((gap) => (
+        <Chip
+          key={gap.skill}
+          label={`${gap.skill} (${gap.percentage}%)`}
+          color="primary"
+          variant="outlined"
+          size="small"
+          sx={{ fontWeight: 500, height: 24 }}
+        />
+      ))}
+      <IconButton
+        size="small"
+        aria-label="Dismiss skill gaps"
+        onClick={() => setDismissed(true)}
+        sx={{ ml: 'auto', p: 0.5 }}
+      >
+        <CloseIcon sx={{ fontSize: 16 }} />
+      </IconButton>
+    </Stack>
   );
 }

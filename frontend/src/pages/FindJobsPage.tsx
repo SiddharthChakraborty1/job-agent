@@ -82,8 +82,8 @@ export function FindJobsPage({ userSub, pipeline }: FindJobsPageProps) {
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              mt: { xs: 1.5, sm: 2 },
-              pt: { xs: 1, sm: 0 },
+              mt: 1,
+              pt: 1,
               flexShrink: 0,
               borderTop: (theme) =>
                 `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
@@ -94,9 +94,8 @@ export function FindJobsPage({ userSub, pipeline }: FindJobsPageProps) {
               color="primary"
               startIcon={<RefreshIcon />}
               onClick={reset}
-              size="large"
-              fullWidth
-              sx={{ maxWidth: { sm: 280 } }}
+              size="small"
+              sx={{ minWidth: 160 }}
             >
               Search again
             </Button>

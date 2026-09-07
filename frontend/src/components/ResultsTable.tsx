@@ -114,6 +114,33 @@ function formatSavedAt(savedAt: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString();
 }
 
+const scrollSx = {
+  flex: '1 1 0%',
+  minHeight: 0,
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  overscrollBehavior: 'contain',
+  WebkitOverflowScrolling: 'touch',
+  pr: 0.75,
+  scrollPaddingBottom: 16,
+  scrollbarWidth: 'thin',
+  scrollbarColor: (theme: { palette: { mode: string } }) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(255,255,255,0.35) transparent'
+      : 'rgba(15,23,42,0.3) transparent',
+  '&::-webkit-scrollbar': { width: 8 },
+  '&::-webkit-scrollbar-track': { background: 'transparent' },
+  '&::-webkit-scrollbar-thumb': {
+    borderRadius: 999,
+    backgroundColor: (theme: { palette: { mode: string } }) =>
+      theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.32)' : 'rgba(15,23,42,0.3)',
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: (theme: { palette: { mode: string } }) =>
+      theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.45)',
+  },
+} as const;
+
 export function ResultsTable({
   validated,
   unscored,
@@ -173,7 +200,7 @@ export function ResultsTable({
         textAlign: 'left',
         display: 'flex',
         flexDirection: 'column',
-        flex: 1,
+        flex: '1 1 0%',
         minHeight: 0,
         overflow: 'hidden',
       }}
@@ -182,16 +209,16 @@ export function ResultsTable({
         <Alert
           severity="info"
           sx={{
-            mb: { xs: 1, sm: 1.25 },
+            mb: 1,
             flexShrink: 0,
-            py: { xs: 0.75, sm: 1 },
-            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
+            py: 0.25,
+            '& .MuiAlert-message': { fontSize: '0.8rem' },
           }}
         >
-          Showing your last search from {savedLabel}
-          {city ? ` · ${city}` : ''}. Run a new search to refresh.
+          Last search · {savedLabel}
+          {city ? ` · ${city}` : ''}
           {typeof newSinceLastCount === 'number' && newSinceLastCount > 0
-            ? ` That run had ${newSinceLastCount} new posting${newSinceLastCount === 1 ? '' : 's'} vs the one before.`
+            ? ` · ${newSinceLastCount} new`
             : ''}
         </Alert>
       )}
@@ -199,17 +226,10 @@ export function ResultsTable({
       {showDelta && (
         <Alert
           severity="success"
-          icon={<FiberNewOutlinedIcon />}
-          sx={{
-            mb: { xs: 1, sm: 1.25 },
-            flexShrink: 0,
-            py: { xs: 0.75, sm: 1 },
-            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
-          }}
+          icon={<FiberNewOutlinedIcon fontSize="inherit" />}
+          sx={{ mb: 1, flexShrink: 0, py: 0.25, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
         >
-          {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last
-          search
-          {newSinceLastCount === 1 ? ' is' : ' are'} marked below.
+          {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last search
         </Alert>
       )}
 
@@ -217,15 +237,10 @@ export function ResultsTable({
         <Alert
           severity="warning"
           role="status"
-          sx={{
-            mb: { xs: 1, sm: 1.25 },
-            flexShrink: 0,
-            py: { xs: 0.75, sm: 1 },
-            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
-          }}
+          sx={{ mb: 1, flexShrink: 0, py: 0.25, '& .MuiAlert-message': { fontSize: '0.8rem' } }}
         >
           {warnings.map((w, i) => (
-            <Typography key={i} variant="body2" sx={{ mt: i === 0 ? 0 : 0.5 }}>
+            <Typography key={i} variant="body2" sx={{ mt: i === 0 ? 0 : 0.5, fontSize: 'inherit' }}>
               {w}
             </Typography>
           ))}
@@ -235,15 +250,7 @@ export function ResultsTable({
       {!isEmpty && <SkillGapSummary gaps={skillGaps} />}
 
       {!isEmpty && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            mb: { xs: 1, sm: 1.25 },
-            flexShrink: 0,
-            '@media (max-height: 900px)': { mb: 1 },
-          }}
-        >
+        <Stack direction="row" spacing={1} sx={{ mb: 1, flexShrink: 0 }}>
           <Button
             variant="outlined"
             size="small"
@@ -289,57 +296,14 @@ export function ResultsTable({
           </Typography>
         </Paper>
       ) : (
-        <Box
-          sx={{
-            flex: 1,
-            // Guarantee a usable list height on phones and 13" laptop viewports
-            minHeight: { xs: '52dvh', sm: '48dvh', md: '50dvh' },
-            '@media (max-height: 900px)': {
-              minHeight: '58dvh',
-            },
-            '@media (max-height: 760px)': {
-              minHeight: '62dvh',
-            },
-            overflow: 'auto',
-            overscrollBehavior: 'contain',
-            WebkitOverflowScrolling: 'touch',
-            pr: { xs: 0.25, sm: 0.75 },
-            mr: { xs: -0.25, sm: -0.25 },
-            scrollPaddingBottom: 16,
-            scrollbarWidth: 'thin',
-            scrollbarColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(255,255,255,0.28) transparent'
-                : 'rgba(15,23,42,0.28) transparent',
-            '&::-webkit-scrollbar': {
-              width: 8,
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-              marginBlock: 4,
-            },
-            '&::-webkit-scrollbar-thumb': {
-              borderRadius: 999,
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.28)'
-                  : 'rgba(15,23,42,0.28)',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.42)'
-                  : 'rgba(15,23,42,0.42)',
-            },
-          }}
-        >
+        <Box sx={scrollSx}>
           {sortedValidated.length > 0 && (
-            <Box component="section" aria-labelledby="validated-heading" sx={{ mb: { xs: 3, sm: 4 } }}>
+            <Box component="section" aria-labelledby="validated-heading" sx={{ mb: 3 }}>
               <Typography
                 id="validated-heading"
                 variant="h5"
                 component="h2"
-                sx={{ mb: { xs: 1.25, sm: 2 }, fontWeight: 600, fontSize: { xs: '1.15rem', sm: '1.5rem' } }}
+                sx={{ mb: 1.25, fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
               >
                 Matched Jobs
                 <Chip label={sortedValidated.length} size="small" color="primary" sx={{ ml: 1.5 }} />
@@ -363,12 +327,12 @@ export function ResultsTable({
                 id="unscored-heading"
                 variant="h5"
                 component="h2"
-                sx={{ mb: 0.5, fontWeight: 600 }}
+                sx={{ mb: 0.5, fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
               >
                 Unscored Jobs
                 <Chip label={sortedUnscored.length} size="small" sx={{ ml: 1.5 }} />
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                 These listings could not be scored against your resume.
               </Typography>
               {sortedUnscored.map((job) => (
