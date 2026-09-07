@@ -179,7 +179,15 @@ export function ResultsTable({
       }}
     >
       {fromSaved && savedLabel && (
-        <Alert severity="info" sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}>
+        <Alert
+          severity="info"
+          sx={{
+            mb: { xs: 1, sm: 1.25 },
+            flexShrink: 0,
+            py: { xs: 0.75, sm: 1 },
+            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
+          }}
+        >
           Showing your last search from {savedLabel}
           {city ? ` · ${city}` : ''}. Run a new search to refresh.
           {typeof newSinceLastCount === 'number' && newSinceLastCount > 0
@@ -192,7 +200,12 @@ export function ResultsTable({
         <Alert
           severity="success"
           icon={<FiberNewOutlinedIcon />}
-          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}
+          sx={{
+            mb: { xs: 1, sm: 1.25 },
+            flexShrink: 0,
+            py: { xs: 0.75, sm: 1 },
+            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
+          }}
         >
           {newSinceLastCount} new posting{newSinceLastCount === 1 ? '' : 's'} since your last
           search
@@ -204,7 +217,12 @@ export function ResultsTable({
         <Alert
           severity="warning"
           role="status"
-          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0, py: { xs: 0.75, sm: 1 } }}
+          sx={{
+            mb: { xs: 1, sm: 1.25 },
+            flexShrink: 0,
+            py: { xs: 0.75, sm: 1 },
+            '@media (max-height: 900px)': { mb: 1, py: 0.5 },
+          }}
         >
           {warnings.map((w, i) => (
             <Typography key={i} variant="body2" sx={{ mt: i === 0 ? 0 : 0.5 }}>
@@ -218,9 +236,13 @@ export function ResultsTable({
 
       {!isEmpty && (
         <Stack
-          direction={{ xs: 'row', sm: 'row' }}
+          direction="row"
           spacing={1}
-          sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0 }}
+          sx={{
+            mb: { xs: 1, sm: 1.25 },
+            flexShrink: 0,
+            '@media (max-height: 900px)': { mb: 1 },
+          }}
         >
           <Button
             variant="outlined"
@@ -270,7 +292,14 @@ export function ResultsTable({
         <Box
           sx={{
             flex: 1,
-            minHeight: { xs: '52dvh', sm: 0 },
+            // Guarantee a usable list height on phones and 13" laptop viewports
+            minHeight: { xs: '52dvh', sm: '48dvh', md: '50dvh' },
+            '@media (max-height: 900px)': {
+              minHeight: '58dvh',
+            },
+            '@media (max-height: 760px)': {
+              minHeight: '62dvh',
+            },
             overflow: 'auto',
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch',
@@ -283,7 +312,7 @@ export function ResultsTable({
                 ? 'rgba(255,255,255,0.28) transparent'
                 : 'rgba(15,23,42,0.28) transparent',
             '&::-webkit-scrollbar': {
-              width: 6,
+              width: 8,
             },
             '&::-webkit-scrollbar-track': {
               background: 'transparent',
