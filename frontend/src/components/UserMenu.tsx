@@ -6,12 +6,17 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   if (!user) return null;
@@ -58,6 +63,28 @@ export function UserMenu() {
           </Typography>
         </Box>
         <Divider sx={{ my: 0.5 }} />
+        {location.pathname.startsWith('/admin') && (
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null);
+              navigate('/');
+            }}
+          >
+            <WorkOutlineOutlinedIcon fontSize="small" sx={{ mr: 1.25, fontSize: 18 }} />
+            Job finder
+          </MenuItem>
+        )}
+        {user.isAdmin && !location.pathname.startsWith('/admin') && (
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null);
+              navigate('/admin');
+            }}
+          >
+            <AdminPanelSettingsOutlinedIcon fontSize="small" sx={{ mr: 1.25, fontSize: 18 }} />
+            Admin
+          </MenuItem>
+        )}
         <MenuItem
           onClick={() => {
             setAnchorEl(null);

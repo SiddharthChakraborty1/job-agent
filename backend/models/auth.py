@@ -6,6 +6,7 @@ class User(BaseModel):
     email: str
     name: str
     picture: str | None = None
+    isAdmin: bool = False
 
 
 class GoogleAuthRequest(BaseModel):

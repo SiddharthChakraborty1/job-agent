@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from models.auth import User
 from services.firebase import get_db
 
 logger = logging.getLogger(__name__)
@@ -205,6 +206,151 @@ def save_preferred_cities(user_sub: str, cities: list[str]) -> None:
     )
 
 
+def upsert_user_profile(user: User, *, touch_login: bool = True) -> None:
+    """Create or refresh the user profile document on sign-in."""
+    users = _users()
+    if users is None:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    ref = users.document(user.sub)
+    payload: dict[str, Any] = {
+        "email": user.email,
+        "name": user.name,
+        "picture": user.picture,
+        "updatedAt": now,
+    }
+    if touch_login:
+        payload["lastLoginAt"] = now
+    doc = ref.get()
+    if not doc.exists:
+        payload["createdAt"] = now
+    else:
+        existing = doc.to_dict() or {}
+        if not existing.get("createdAt"):
+            payload["createdAt"] = now
+    ref.set(payload, merge=True)
+
+
+def _cities_from_doc(data: dict[str, Any]) -> list[str]:
+    cities = data.get("preferredCities") or []
+    if not isinstance(cities, list):
+        return []
+    return [c for c in cities if isinstance(c, str) and c.strip()]
+
+
+def _as_iso(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value
+    iso = getattr(value, "isoformat", None)
+    if callable(iso):
+        try:
+            return str(iso())
+        except Exception:
+            return None
+    return None
+
+
+def _profile_from_doc(user_sub: str, data: dict[str, Any]) -> dict[str, Any]:
+    picture = data.get("picture")
+    return {
+        "sub": user_sub,
+        "email": data.get("email") or "",
+        "name": data.get("name") or "",
+        "picture": picture if isinstance(picture, str) and picture else None,
+        "preferredCities": _cities_from_doc(data),
+        "lastLoginAt": _as_iso(data.get("lastLoginAt")),
+        "createdAt": _as_iso(data.get("createdAt")),
+        "searchCount": 0,
+        "lastSearchAt": None,
+    }
+
+
+def _apply_run_stat(profile: dict[str, Any], saved_at: Any) -> None:
+    profile["searchCount"] = int(profile.get("searchCount") or 0) + 1
+    if not isinstance(saved_at, str) or not saved_at:
+        return
+    prev = profile.get("lastSearchAt")
+    if not prev or saved_at > prev:
+        profile["lastSearchAt"] = saved_at
+
+
+def _fill_run_stats_per_user(profiles: dict[str, dict[str, Any]]) -> None:
+    users = _users()
+    if users is None:
+        return
+    for sub, profile in profiles.items():
+        query = (
+            users.document(sub)
+            .collection("runs")
+            .select(["savedAt"])
+            .order_by("savedAt", direction="DESCENDING")
+        )
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            _apply_run_stat(profile, data.get("savedAt"))
+
+
+def list_users_for_admin() -> list[dict[str, Any]]:
+    users = _users()
+    db = get_db()
+    if users is None or db is None:
+        return []
+
+    profiles: dict[str, dict[str, Any]] = {}
+    for doc in users.stream():
+        profiles[doc.id] = _profile_from_doc(doc.id, doc.to_dict() or {})
+
+    try:
+        for run_doc in db.collection_group("runs").select(["savedAt"]).stream():
+            parent = run_doc.reference.parent.parent
+            if parent is None:
+                continue
+            sub = parent.id
+            if sub not in profiles:
+                profiles[sub] = _profile_from_doc(sub, {})
+            data = run_doc.to_dict() or {}
+            _apply_run_stat(profiles[sub], data.get("savedAt"))
+    except Exception:
+        logger.exception(
+            "collection_group(runs) failed; counting searches per user instead"
+        )
+        for profile in profiles.values():
+            profile["searchCount"] = 0
+            profile["lastSearchAt"] = None
+        _fill_run_stats_per_user(profiles)
+
+    out = list(profiles.values())
+    out.sort(
+        key=lambda row: row.get("lastSearchAt") or row.get("lastLoginAt") or "",
+        reverse=True,
+    )
+    return out
+
+
+def get_user_for_admin(user_sub: str) -> dict[str, Any] | None:
+    users = _users()
+    if users is None:
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", user_sub):
+        return None
+
+    doc = users.document(user_sub).get()
+    data = doc.to_dict() if doc.exists else {}
+    profile = _profile_from_doc(user_sub, data or {})
+    runs = list_runs(user_sub, limit=50)
+    profile["runs"] = runs
+    if runs:
+        profile["searchCount"] = len(runs)
+        profile["lastSearchAt"] = _as_iso(runs[0].get("savedAt"))
+    else:
+        profile["searchCount"] = 0
+        profile["lastSearchAt"] = None
+
+    if not doc.exists and not runs:
+        return None
+    return profile
+
+
 def get_preferred_cities(user_sub: str) -> list[str]:
     users = _users()
     if users is None:
@@ -213,7 +359,4 @@ def get_preferred_cities(user_sub: str) -> list[str]:
     if not doc.exists:
         return []
     data = doc.to_dict() or {}
-    cities = data.get("preferredCities") or []
-    if not isinstance(cities, list):
-        return []
-    return [c for c in cities if isinstance(c, str) and c.strip()]
+    return _cities_from_doc(data)

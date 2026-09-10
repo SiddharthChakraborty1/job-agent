@@ -44,3 +44,19 @@ class PreferredCitiesUpdate(BaseModel):
 
 class PreferredCitiesOut(BaseModel):
     cities: list[str] = []
+
+
+class AdminUserSummary(BaseModel):
+    sub: str
+    email: str = ""
+    name: str = ""
+    picture: Optional[str] = None
+    preferredCities: list[str] = []
+    lastLoginAt: Optional[str] = None
+    createdAt: Optional[str] = None
+    searchCount: int = 0
+    lastSearchAt: Optional[str] = None
+
+
+class AdminUserDetail(AdminUserSummary):
+    runs: list[SavedRunSummary] = []

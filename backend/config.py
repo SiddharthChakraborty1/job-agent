@@ -29,6 +29,11 @@ class Settings:
             if url.strip()
         ]
         self.cookie_secure = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+        self.admin_emails = frozenset(
+            email.strip().lower()
+            for email in os.getenv("ADMIN_EMAILS", "").split(",")
+            if email.strip()
+        )
         # Per-user resume upload rate limit (sliding window).
         self.resume_upload_limit = self._optional_int("RESUME_UPLOAD_LIMIT", 5)
         self.resume_upload_window_seconds = self._optional_int(

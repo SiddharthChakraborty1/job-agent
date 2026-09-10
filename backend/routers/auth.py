@@ -7,6 +7,8 @@ from config import settings
 from dependencies.auth import get_current_user
 from models.auth import GoogleAuthRequest, User
 from services.auth import COOKIE_NAME, create_access_token, verify_google_credential
+from services.firebase import is_firestore_ready
+import services.firestore_store as firestore_store
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +59,23 @@ async def google_login(body: GoogleAuthRequest, response: Response) -> User:
 
     token = create_access_token(user)
     _set_auth_cookie(response, token)
+
+    if is_firestore_ready():
+        try:
+            firestore_store.upsert_user_profile(user)
+        except Exception:
+            logger.exception("Failed to persist user profile for %s", user.sub)
+
     return user
 
 
 @router.get("/me")
 async def get_me(user: User = Depends(get_current_user)) -> User:
+    if is_firestore_ready():
+        try:
+            firestore_store.upsert_user_profile(user, touch_login=False)
+        except Exception:
+            logger.exception("Failed to persist user profile for %s", user.sub)
     return user
 
 

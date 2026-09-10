@@ -11,6 +11,12 @@ GOOGLE_REQUEST = google_requests.Request()
 COOKIE_NAME = "access_token"
 
 
+def is_admin_email(email: str) -> bool:
+    if not email:
+        return False
+    return email.strip().lower() in settings.admin_emails
+
+
 def verify_google_credential(credential: str) -> User:
     """Verify a Google ID token and return the authenticated user."""
     idinfo = id_token.verify_oauth2_token(
@@ -32,6 +38,7 @@ def verify_google_credential(credential: str) -> User:
         email=email,
         name=idinfo.get("name") or email,
         picture=idinfo.get("picture"),
+        isAdmin=is_admin_email(email),
     )
 
 
@@ -53,9 +60,11 @@ def decode_access_token(token: str) -> User:
         settings.jwt_secret,
         algorithms=[settings.jwt_algorithm],
     )
+    email = payload["email"]
     return User(
         sub=payload["sub"],
-        email=payload["email"],
+        email=email,
         name=payload["name"],
         picture=payload.get("picture"),
+        isAdmin=is_admin_email(email),
     )

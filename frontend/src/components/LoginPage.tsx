@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -7,6 +8,7 @@ import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import TrackChangesOutlinedIcon from '@mui/icons-material/TrackChangesOutlined';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { Link as RouterLink } from 'react-router-dom';
 import { BrandMark } from './BrandMark';
 import { DarkModeToggle } from './DarkModeToggle';
 import { ErrorBanner } from './ErrorBanner';
@@ -135,6 +137,18 @@ export function LoginPage() {
             ))}
           </Box>
         </Paper>
+
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Button
+            component={RouterLink}
+            to="/admin"
+            size="small"
+            color="inherit"
+            sx={{ color: 'text.disabled', fontWeight: 500 }}
+          >
+            Admin
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

@@ -98,6 +98,10 @@ job links, or cancel a run in progress. The last completed search is restored af
 Each signed-in user can upload `RESUME_UPLOAD_LIMIT` times per
 `RESUME_UPLOAD_WINDOW_SECONDS` (defaults: 5 uploads per hour). Further uploads return HTTP 429.
 
+Admins: set `ADMIN_EMAILS` in `.env` to a comma-separated list of Google account emails,
+then open `/admin` (or use **Admin sign-in** on the login page). Allowlisted accounts can
+browse every user and the searches they have run.
+
 ---
 
 ## Tests

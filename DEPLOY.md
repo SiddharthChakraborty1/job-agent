@@ -52,6 +52,7 @@ Ensure `render.yaml` is in the repo root.
 | `JWT_SECRET` | long random string |
 | `FRONTEND_URL` | `https://YOUR-APP.vercel.app` (update after Vercel deploy) |
 | `COOKIE_SECURE` | `true` |
+| `ADMIN_EMAILS` | comma-separated Google emails that can open `/admin` |
 | `JWT_EXPIRE_MINUTES` | `60` (optional) |
 | `RESUME_UPLOAD_LIMIT` | `5` (optional; max uploads per user per window) |
 | `RESUME_UPLOAD_WINDOW_SECONDS` | `3600` (optional; 1 hour) |
@@ -150,6 +151,7 @@ Backend stays on `*.onrender.com` — no GoDaddy change needed for the API.
 - [ ] `https://YOUR-API.onrender.com/health` returns OK
 - [ ] Vercel site loads login page
 - [ ] Google Sign-In works
+- [ ] `/admin` shows the admin login; allowlisted emails can see users and searches
 - [ ] Resume upload runs (may be slow if Render was sleeping)
 - [ ] No CORS errors in browser DevTools → Console
 
