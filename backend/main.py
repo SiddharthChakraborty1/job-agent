@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings  # noqa: F401
 from routers.analyze import router as analyze_router
 from routers.auth import router as auth_router
+from routers.admin import router as admin_router
 from routers.persistence import router as persistence_router
 from services.firebase import init_firebase, is_firestore_ready
 
@@ -49,6 +50,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(analyze_router, prefix="/api")
 app.include_router(persistence_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/health")

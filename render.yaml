@@ -28,6 +28,8 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         sync: false
+      - key: ADMIN_EMAILS
+        sync: false
       - key: RESUME_UPLOAD_LIMIT
         value: "5"
       - key: RESUME_UPLOAD_WINDOW_SECONDS
