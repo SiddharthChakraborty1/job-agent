@@ -192,8 +192,10 @@ button { font: inherit; color: inherit; }
 .algo-progress .muted { font-size: 13px; white-space: nowrap; }
 
 .algo-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 34px; align-items: start; }
-.algo-learn { display: grid; gap: 16px; }
+.algo-learn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.algo-practice { min-width: 0; }
 .block {
+  min-width: 0;
   padding: 20px 22px; border-radius: var(--radius);
   background: var(--panel); border: 1px solid var(--line);
 }
@@ -206,7 +208,7 @@ button { font: inherit; color: inherit; }
 .cue-block { border-color: color-mix(in srgb, var(--c) 35%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--c) 7%, transparent), var(--panel) 60%); }
 .note { border-style: dashed; }
 
-.code { position: relative; margin-bottom: 10px; }
+.code { position: relative; margin-bottom: 10px; min-width: 0; max-width: 100%; }
 .code pre {
   margin: 0; padding: 16px 18px; overflow-x: auto;
   background: #060910; border: 1px solid var(--line); border-radius: 10px;
