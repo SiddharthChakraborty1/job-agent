@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import * as THREE from 'three'
 import { algorithms } from '../data'
 import { PHASES } from '../data/types'
@@ -19,6 +19,20 @@ function glowTexture() {
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace
   return t
+}
+
+/** Shorter names for the map; the hover/tap card shows the full name. */
+const SHORT: Record<string, string> = {
+  'linked-list-ops': 'In-place Reversal',
+  stack: 'Stack',
+  'fast-slow': 'Fast & Slow',
+  'graph-traversal': 'Graph BFS / DFS',
+  'topological-sort': 'Topo Sort',
+  dijkstra: 'Dijkstra',
+  heap: 'Heap / Top-K',
+  'dp-1d': '1D DP',
+  'dp-2d': '2D DP',
+  bits: 'Bits',
 }
 
 /** Learning flows left → right by phase; nodes in a phase sit on a ring around that x. */
@@ -91,6 +105,7 @@ export function Constellation() {
       hit: THREE.Mesh
       base: number
       label: HTMLDivElement
+      w: number
     }[] = []
     const hitMeshes: THREE.Mesh[] = []
     const coreGeo = new THREE.SphereGeometry(1, 24, 24)
@@ -121,10 +136,10 @@ export function Constellation() {
 
       const label = document.createElement('div')
       label.className = 'node-label'
-      label.textContent = a.name
+      label.textContent = SHORT[a.id] ?? a.name
       label.style.setProperty('--c', PHASES[a.phase].color)
       labelLayer.appendChild(label)
-      nodes.push({ id: a.id, core, halo, hit, base, label })
+      nodes.push({ id: a.id, core, halo, hit, base, label, w: 0 })
     }
 
     // Prerequisite edges (gradient lines) + travelling pulses
@@ -166,6 +181,28 @@ export function Constellation() {
     world.add(pulses)
     const offsets = edges.map(() => Math.random())
 
+    // Spread node positions (not the scene scale, which would squash the spheres)
+    const basePos = new Map([...positions].map(([id, v]) => [id, v.clone()]))
+    const linePos = lineGeo.attributes.position as THREE.BufferAttribute
+    const stretch = (sx: number, sy: number) => {
+      for (const [id, v] of positions) {
+        const b = basePos.get(id)!
+        v.set(b.x * sx, b.y * sy, b.z)
+      }
+      for (const n of nodes) {
+        const v = positions.get(n.id)!
+        n.core.position.copy(v)
+        n.halo.position.copy(v)
+        n.hit.position.copy(v)
+      }
+      edges.forEach(([a, b], i) => {
+        linePos.setXYZ(i * 2, a.x, a.y, a.z)
+        linePos.setXYZ(i * 2 + 1, b.x, b.y, b.z)
+      })
+      linePos.needsUpdate = true
+      lineGeo.computeBoundingSphere()
+    }
+
     // Sizing
     const resize = () => {
       const w = mount.clientWidth
@@ -177,10 +214,13 @@ export function Constellation() {
         // phases flow top -> bottom on tall screens
         frame.rotation.z = -Math.PI / 2
         frame.position.set(0, 0, 0)
-        camera.position.z = 25
+        // local y becomes screen x after the rotation: widen each phase's ring so names separate
+        stretch(1.15, 1.6)
+        camera.position.z = 26
       } else {
         // leave the left side free for the hero text on wide screens
         frame.rotation.z = 0
+        stretch(1, 1)
         const wide = w >= 1000
         frame.position.set(wide ? 4.6 : 0, wide ? -0.4 : -1.2, 0)
         camera.position.z = wide ? 15.5 : 19
@@ -209,6 +249,7 @@ export function Constellation() {
       return (hit?.object.userData.id as string | undefined) ?? null
     }
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
       toNdc(e)
       target.x = pointer.x * 0.35
       target.y = pointer.y * 0.18
@@ -226,9 +267,19 @@ export function Constellation() {
       if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return
       toNdc(e)
       const id = pick()
-      if (id) navRef.current(`/a/${id}`)
+      if (e.pointerType === 'mouse') {
+        if (id) navRef.current(`/a/${id}`)
+        return
+      }
+      // touch: first tap selects (shows the card), second tap on the same node opens it
+      if (id && id === hoverId) navRef.current(`/a/${id}`)
+      else {
+        hoverId = id
+        setHovered(id)
+      }
     }
-    const onLeave = () => {
+    const onLeave = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
       pointer.set(10, 10)
       hoverId = null
       setHovered(null)
@@ -276,8 +327,10 @@ export function Constellation() {
         n.core.getWorldPosition(v)
         const depth = THREE.MathUtils.clamp((v.z + 4) / 8, 0, 1) // 0 = far, 1 = near
         v.project(camera)
-        const x = (v.x * 0.5 + 0.5) * w
         const y = (-v.y * 0.5 + 0.5) * h
+        if (!n.w) n.w = n.label.offsetWidth
+        const half = n.w / 2 + 4
+        const x = THREE.MathUtils.clamp((v.x * 0.5 + 0.5) * w, half, w - half) // keep names on screen
         n.label.style.transform = `translate(${x}px, ${y}px) translate(-50%, 14px)`
         n.label.style.opacity = isHover ? '1' : String(0.3 + depth * 0.6)
         n.label.style.zIndex = isHover ? '10' : String(Math.round(depth * 9))
@@ -322,7 +375,11 @@ export function Constellation() {
             </span>
             <strong>{info.name}</strong>
             <p>{info.tagline}</p>
-            <span className="muted">Click to open</span>
+            <Link className="card-open" to={`/a/${info.id}`}>
+              Open {info.name} →
+            </Link>
+            <span className="muted hint-mouse">Click the node to open</span>
+            <span className="muted hint-touch">Tap the node again to open</span>
           </>
         )}
       </div>
