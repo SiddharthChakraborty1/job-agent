@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -14,7 +15,7 @@ from services.serper import search_dork
 
 logger = logging.getLogger(__name__)
 
-MAX_DORKS = 10
+MAX_DORKS = 15  # matches the DorkingAgent's upper bound
 MAX_URLS_TO_FETCH = 40
 SERPER_CONCURRENCY = 6
 FETCH_CONCURRENCY = 8
@@ -34,13 +35,28 @@ _INDIAN_JOB_HOST_SUFFIXES = (
 
 _JOB_PATH_HINTS = ("/job", "/jobs", "/career", "/careers", "/viewjob", "/listing")
 
-# Applicant-tracking systems used by product companies and startups, including
-# Indian ones and global companies hiring in India. Location is decided per
-# posting (by extraction/validation), not by the host.
-_ATS_HOST_SUFFIXES = (
-    "jobs.lever.co",
-    "greenhouse.io",
-    "jobs.ashbyhq.com",
+# Career platforms and startup boards: (host suffix, regex for a single posting's
+# path). The job signal is in the host, so a plain path-hint check misses these
+# (e.g. Lever's /<company>/<uuid>). Board/listing pages deliberately don't match.
+# Location is decided per posting later, never by the host.
+_UUIDISH = r"[0-9a-f]{8}-[0-9a-f-]{20,}"
+_JOB_SITE_POSTING_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
+    (host, re.compile(pattern))
+    for host, pattern in (
+        ("lever.co", rf"^/[^/]+/{_UUIDISH}"),
+        ("greenhouse.io", r"^/[^/]+/jobs/\d+"),
+        ("jobs.ashbyhq.com", rf"^/[^/]+/{_UUIDISH}"),
+        ("keka.com", r"^/careers/jobdetails/\d+"),
+        ("zohorecruit.com", r"^/jobs/careers/\d+"),
+        ("zohorecruit.in", r"^/jobs/careers/\d+"),
+        ("myworkdayjobs.com", r"/job/"),
+        ("myworkdaysite.com", r"/job/"),
+        ("jobs.smartrecruiters.com", r"^/[^/]+/\d+"),
+        ("apply.workable.com", r"^/[^/]+/j/[0-9a-z]+"),
+        ("wellfound.com", r"^/jobs/\d+"),
+        ("workatastartup.com", r"^/jobs/\d+"),
+        ("ycombinator.com", r"^/companies/[^/]+/jobs/[^/]+"),
+    )
 )
 
 
@@ -62,13 +78,14 @@ def _is_indian_job_host(url: str) -> bool:
     return any(host == suffix or host.endswith("." + suffix) for suffix in _INDIAN_JOB_HOST_SUFFIXES)
 
 
-def _is_ats_posting(url: str) -> bool:
-    """ATS posting URLs are /<company>/<posting-id>; the job signal is in the host."""
+def _is_job_site_posting(url: str) -> bool:
+    """True for a single posting on a known career platform or startup board."""
     host = _normalise_host(url)
-    if not any(host == suffix or host.endswith("." + suffix) for suffix in _ATS_HOST_SUFFIXES):
-        return False
-    segments = [part for part in urlparse(url).path.split("/") if part]
-    return len(segments) >= 2
+    path = urlparse(url).path.lower()
+    return any(
+        (host == suffix or host.endswith("." + suffix)) and pattern.search(path)
+        for suffix, pattern in _JOB_SITE_POSTING_PATTERNS
+    )
 
 
 def _url_priority(url: str) -> int:
@@ -76,9 +93,10 @@ def _url_priority(url: str) -> int:
     parsed = urlparse(url)
     path = parsed.path.lower()
     score = 0
-    if _is_indian_job_host(url) or _is_ats_posting(url):
+    posting = _is_job_site_posting(url)
+    if _is_indian_job_host(url) or posting:
         score += 5
-    if _is_ats_posting(url) or any(hint in path for hint in _JOB_PATH_HINTS):
+    if posting or any(hint in path for hint in _JOB_PATH_HINTS):
         score += 8
     if path in ("", "/"):
         score -= 10

@@ -7,6 +7,7 @@ import pytest
 from job_agents.extraction_agent import extract_jobs
 from models.schemas import JobResult
 from services.batched_search import (
+    MAX_DORKS,
     SearchHit,
     _dedupe_queries,
     _merge_serper_hits,
@@ -20,12 +21,12 @@ def test_dedupe_queries_caps_and_dedupes():
         "site:naukri.com Python",
         "site:naukri.com Python",
         "  site:hirist.com Django  ",
-        *[f"q{i}" for i in range(12)],
+        *[f"q{i}" for i in range(20)],
     ]
     result = _dedupe_queries(queries)
     assert result[0] == "site:naukri.com Python"
     assert result[1] == "site:hirist.com Django"
-    assert len(result) == 10
+    assert len(result) == MAX_DORKS == 15
 
 
 def test_merge_serper_hits_dedupes_by_url_and_sorts_job_urls_first():
@@ -218,3 +219,77 @@ def test_dork_prompt_allows_ats_boards_with_india_location():
     assert "do not use generic us-centric boards" not in lowered
     for host in ("jobs.lever.co", "greenhouse.io", "jobs.ashbyhq.com"):
         assert host in lowered
+
+
+# Real URL shapes for each supported job site (posting pages vs. board/listing pages).
+_POSTING_URLS = [
+    "https://jobs.lever.co/acme/1f2e3d4c-aaaa-bbbb-cccc-1234567890ab",
+    "https://jobs.eu.lever.co/acme/1f2e3d4c-aaaa-bbbb-cccc-1234567890ab",
+    "https://boards.greenhouse.io/acme/jobs/4012345",
+    "https://job-boards.greenhouse.io/acme/jobs/4012345",
+    "https://job-boards.eu.greenhouse.io/acme/jobs/4012345",
+    "https://jobs.ashbyhq.com/acme/1f2e3d4c-aaaa-bbbb-cccc-1234567890ab",
+    "https://hr.keka.com/careers/jobdetails/90215",
+    "https://kickdrum.keka.com/careers/jobdetails/13983",
+    "https://acme.zohorecruit.com/jobs/Careers/123456000001234567/Backend-Engineer",
+    "https://acme.zohorecruit.in/jobs/Careers/123456000001234567/Backend-Engineer",
+    "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/India-Pune/Senior-Engineer_JR123",
+    "https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/India-Pune/Senior-Engineer_JR123",
+    "https://wd5.myworkdaysite.com/recruiting/acme/External/job/Bengaluru/Engineer_R1",
+    "https://jobs.smartrecruiters.com/BoschGroup/744000012345678-backend-engineer",
+    "https://apply.workable.com/acme/j/AB12CD34EF/",
+    "https://wellfound.com/jobs/3123456-senior-backend-engineer",
+    "https://www.workatastartup.com/jobs/79469",
+    "https://www.ycombinator.com/companies/warpbuild/jobs/JaSIHEM-senior-staff-fullstack-engineer",
+]
+
+_BOARD_URLS = [
+    "https://jobs.lever.co/acme",
+    "https://boards.greenhouse.io/acme",
+    "https://jobs.ashbyhq.com/acme",
+    "https://hr.keka.com/careers",
+    "https://acme.zohorecruit.com/jobs/Careers",
+    "https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite",
+    "https://jobs.smartrecruiters.com/BoschGroup",
+    "https://apply.workable.com/acme/",
+    "https://www.workatastartup.com/companies",
+]
+
+
+@pytest.mark.parametrize("url", _POSTING_URLS)
+def test_job_site_posting_urls_are_recognised(url):
+    from services.batched_search import _is_job_site_posting, _url_priority
+
+    assert _is_job_site_posting(url), url
+    assert _url_priority(url) >= 13, url
+
+
+@pytest.mark.parametrize("url", _BOARD_URLS)
+def test_job_site_board_pages_are_not_postings(url):
+    from services.batched_search import _is_job_site_posting
+
+    assert not _is_job_site_posting(url), url
+
+
+def test_job_site_postings_outrank_generic_pages():
+    from services.batched_search import _url_priority
+
+    assert _url_priority("https://hr.keka.com/careers/jobdetails/90215") > _url_priority(
+        "https://example.com/careers"
+    )
+
+
+def test_dork_prompt_covers_new_job_sites():
+    from job_agents.dorking_agent import SYSTEM_PROMPT
+
+    lowered = SYSTEM_PROMPT.lower()
+    for site in (
+        "keka.com/careers/jobdetails",
+        "zohorecruit",
+        "myworkdayjobs.com",
+        "jobs.smartrecruiters.com",
+        "apply.workable.com",
+        "wellfound.com/jobs",
+        "workatastartup.com/jobs",
+    ):
+        assert site in lowered, site
