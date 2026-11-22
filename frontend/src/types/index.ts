@@ -17,7 +17,7 @@ export interface ValidatedJobResult extends JobResult {
   missing_skills?: string[];
 }
 
-export interface UnscoredJobResult extends JobResult {}
+export type UnscoredJobResult = JobResult;
 
 export interface SkillGap {
   skill: string;
