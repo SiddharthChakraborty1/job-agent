@@ -15,8 +15,10 @@ from models.schemas import JobResult
 
 logger = logging.getLogger(__name__)
 
-# Search uses tbs=qdr:m (past month); drop inventively old years like 2023.
-MAX_POSTED_AGE_DAYS = 45
+# Only null out implausible dates (copyright footers like 2023). Real but old
+# dates are kept so services/freshness.drop_stale can remove those jobs; nulling
+# them made old jobs look undated and let them through.
+MAX_POSTED_AGE_DAYS = 365
 
 SYSTEM_PROMPT = """You extract structured job listings from Google search hits for the Indian job market.
 
@@ -38,7 +40,7 @@ Rules:
   - Prefer the hit's `date` field from Google/Serper (e.g. "2 days ago", "1 week ago", "13 Aug")
   - Interpret relative dates using TODAY supplied in the request
   - Never invent a year. Do not use copyright years (© 2023) or random old years from page footers
-  - If the only year you see is clearly older than the last ~45 days relative to TODAY, use null
+  - Report the real posted date even if it is weeks old (stale jobs are filtered in code); use null only when unsure
 
 Return ONLY a JSON array of at most 50 objects with fields:
 job_title, company_name, job_url, organisation_tier, description, posted_date, location, country, remote
@@ -69,7 +71,7 @@ def _compact_hits(hits: list[Any]) -> list[dict[str, str]]:
 
 
 def _sanitise_posted_date(posted: date | None, today: date) -> date | None:
-    """Drop dates that are in the future or older than the search window."""
+    """Null out dates in the future or implausibly old (likely copyright years)."""
     if posted is None:
         return None
     if posted > today:

@@ -5,6 +5,7 @@ from agents import Agent, Runner
 
 from config import settings
 from job_agents.parsing import parse_json_list
+from services.freshness import SEARCH_WINDOW_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ def _format_cities(preferred_cities: list[str] | None) -> str | None:
 
 
 def build_dork_prompt(resume_text: str, preferred_cities: list[str] | None = None) -> str:
-    cutoff = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    cutoff = (date.today() - timedelta(days=SEARCH_WINDOW_DAYS)).strftime("%Y-%m-%d")
     cities_text = _format_cities(preferred_cities)
     location_line = (
         f"Preferred job locations (use these in dorks; spread across them): {cities_text}.\n"
