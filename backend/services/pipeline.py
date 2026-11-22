@@ -14,13 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 def sort_validated_jobs(jobs: list[ValidatedJobResult]) -> list[ValidatedJobResult]:
-    """Most recent first; highest score first on the same date. Undated jobs last."""
+    """Best fit first. Date only breaks ties (newer first, undated last).
+
+    Sorting date-first meant a 30-score job posted today outranked a 90-score job
+    posted yesterday, so the top 10 was "newest 10", not "best 10".
+    """
     return sorted(
         jobs,
         key=lambda r: (
+            r.alignment_score,
             r.posted_date is not None,
             r.posted_date or date.min,
-            r.alignment_score,
         ),
         reverse=True,
     )
