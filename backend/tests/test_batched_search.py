@@ -188,3 +188,33 @@ def test_sanitise_posted_date_keeps_recent():
     assert _sanitise_posted_date(date(2023, 8, 10), today) is None
     assert _sanitise_posted_date(today + timedelta(days=1), today) is None
     assert _sanitise_posted_date(None, today) is None
+
+
+def test_ats_job_urls_are_prioritised_for_fetch():
+    """Lever/Ashby put the job signal in the host, not the path; they must still be fetched."""
+    from services.batched_search import _url_priority
+
+    for url in (
+        "https://jobs.lever.co/acme/1f2e3d4c-aaaa-bbbb-cccc-1234567890ab",
+        "https://jobs.ashbyhq.com/acme/1f2e3d4c-aaaa-bbbb-cccc-1234567890ab",
+        "https://boards.greenhouse.io/acme/jobs/4012345",
+        "https://job-boards.greenhouse.io/acme/jobs/4012345",
+    ):
+        assert _url_priority(url) > 0, url
+
+
+def test_ats_board_root_is_not_prioritised():
+    """A company's board index (no specific posting) is not a job listing."""
+    from services.batched_search import _url_priority
+
+    assert _url_priority("https://jobs.lever.co/acme") <= 0
+
+
+def test_dork_prompt_allows_ats_boards_with_india_location():
+    from job_agents.dorking_agent import SYSTEM_PROMPT
+
+    lowered = SYSTEM_PROMPT.lower()
+    assert "do not target us/eu job boards" not in lowered
+    assert "do not use generic us-centric boards" not in lowered
+    for host in ("jobs.lever.co", "greenhouse.io", "jobs.ashbyhq.com"):
+        assert host in lowered

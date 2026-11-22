@@ -34,6 +34,15 @@ _INDIAN_JOB_HOST_SUFFIXES = (
 
 _JOB_PATH_HINTS = ("/job", "/jobs", "/career", "/careers", "/viewjob", "/listing")
 
+# Applicant-tracking systems used by product companies and startups, including
+# Indian ones and global companies hiring in India. Location is decided per
+# posting (by extraction/validation), not by the host.
+_ATS_HOST_SUFFIXES = (
+    "jobs.lever.co",
+    "greenhouse.io",
+    "jobs.ashbyhq.com",
+)
+
 
 @dataclass(frozen=True)
 class SearchHit:
@@ -53,14 +62,23 @@ def _is_indian_job_host(url: str) -> bool:
     return any(host == suffix or host.endswith("." + suffix) for suffix in _INDIAN_JOB_HOST_SUFFIXES)
 
 
+def _is_ats_posting(url: str) -> bool:
+    """ATS posting URLs are /<company>/<posting-id>; the job signal is in the host."""
+    host = _normalise_host(url)
+    if not any(host == suffix or host.endswith("." + suffix) for suffix in _ATS_HOST_SUFFIXES):
+        return False
+    segments = [part for part in urlparse(url).path.split("/") if part]
+    return len(segments) >= 2
+
+
 def _url_priority(url: str) -> int:
     """Higher score = more likely a direct job listing worth fetching."""
     parsed = urlparse(url)
     path = parsed.path.lower()
     score = 0
-    if _is_indian_job_host(url):
+    if _is_indian_job_host(url) or _is_ats_posting(url):
         score += 5
-    if any(hint in path for hint in _JOB_PATH_HINTS):
+    if _is_ats_posting(url) or any(hint in path for hint in _JOB_PATH_HINTS):
         score += 8
     if path in ("", "/"):
         score -= 10
