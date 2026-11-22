@@ -8,22 +8,26 @@ from models.schemas import JobResult, PipelineResponse, UnscoredJobResult, Valid
 from services.batched_search import run_batched_search
 from services.company_tier import classify_company_tiers
 from services.deduplicator import deduplicate
+from services.freshness import age_penalty, drop_stale
 from services.location_filter import filter_by_location
 from services.skill_gaps import aggregate_skill_gaps
 
 logger = logging.getLogger(__name__)
 
 
-def sort_validated_jobs(jobs: list[ValidatedJobResult]) -> list[ValidatedJobResult]:
-    """Best fit first. Date only breaks ties (newer first, undated last).
+def sort_validated_jobs(
+    jobs: list[ValidatedJobResult], today: date | None = None
+) -> list[ValidatedJobResult]:
+    """Rank by fit minus an age penalty; newer first on ties, undated last.
 
-    Sorting date-first meant a 30-score job posted today outranked a 90-score job
-    posted yesterday, so the top 10 was "newest 10", not "best 10".
+    alignment_score itself is not modified: it stays a pure fit measure. A strong
+    fit posted 10 days ago now ranks below a good fit posted today.
     """
+    today = today or date.today()
     return sorted(
         jobs,
         key=lambda r: (
-            r.alignment_score,
+            r.alignment_score - age_penalty(r.posted_date, today),
             r.posted_date is not None,
             r.posted_date or date.min,
         ),
@@ -76,6 +80,12 @@ async def run_pipeline(
     all_jobs = filter_by_location(all_jobs)
     if before and not all_jobs:
         warnings.append("All found jobs were located outside India.")
+
+    # Step 3c: Drop postings older than the freshness limit (undated are kept)
+    before = len(all_jobs)
+    all_jobs = drop_stale(all_jobs, date.today())
+    if before and not all_jobs:
+        warnings.append("All found jobs were older than the freshness limit.")
 
     # Step 4: Label companies by what they are, not a search guess
     await progress_cb("Classifying company tiers...")

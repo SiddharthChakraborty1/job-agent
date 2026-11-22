@@ -48,7 +48,7 @@ def test_validated_jobs_sort_best_fit_first():
     weak_today = _scored("https://example.com/weak", 30, date(2026, 8, 15))
     strong_yesterday = _scored("https://example.com/strong", 90, date(2026, 8, 14))
 
-    ordered = sort_validated_jobs([weak_today, strong_yesterday])
+    ordered = sort_validated_jobs([weak_today, strong_yesterday], today=date(2026, 8, 15))
     assert [job.job_url for job in ordered] == [
         strong_yesterday.job_url,
         weak_today.job_url,
@@ -56,11 +56,13 @@ def test_validated_jobs_sort_best_fit_first():
 
 
 def test_validated_jobs_same_score_newer_first_undated_last():
-    older = _scored("https://example.com/older", 80, date(2026, 7, 1))
+    """Equal fit, both inside the fresh window: newer first; undated ranks below them."""
+    today = date(2026, 8, 16)
+    older = _scored("https://example.com/older", 80, date(2026, 8, 14))
     newer = _scored("https://example.com/newer", 80, date(2026, 8, 15))
     undated = _scored("https://example.com/undated", 80, None)
 
-    ordered = sort_validated_jobs([undated, older, newer])
+    ordered = sort_validated_jobs([undated, older, newer], today=today)
     assert [job.job_url for job in ordered] == [
         newer.job_url,
         older.job_url,
@@ -72,5 +74,5 @@ def test_undated_strong_fit_beats_dated_weak_fit():
     undated_strong = _scored("https://example.com/undated", 95, None)
     dated_weak = _scored("https://example.com/dated", 40, date(2026, 8, 15))
 
-    ordered = sort_validated_jobs([dated_weak, undated_strong])
+    ordered = sort_validated_jobs([dated_weak, undated_strong], today=date(2026, 8, 15))
     assert ordered[0].job_url == undated_strong.job_url
