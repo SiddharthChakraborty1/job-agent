@@ -25,6 +25,7 @@ Each input item has: url, title, snippet, optional date (from Google/Serper), an
 Rules:
 - Only include real job postings — not company homepages, blogs, category pages, or login walls
 - Skip listings clearly outside India with no India office or remote-India option
+- If page_text starts with "STRUCTURED JOB DATA", treat those fields (title, company, locations, date posted) as authoritative over the snippet
 - job_url must copy the input url exactly
 - company_name: extract from title, snippet, or page_text; avoid using the job board name as the company
 - organisation_tier: best guess — startup | midlevel | enterprise

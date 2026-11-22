@@ -134,3 +134,83 @@ async def test_fetch_page_truncates(monkeypatch):
     text = await fetch_page_text("https://boards.greenhouse.io/acme/jobs/1", max_chars=200)
     assert len(text) <= 200 + len("\n\n<truncated>")
     assert text.endswith("<truncated>")
+
+
+_JSONLD_PAGE = """<html><head>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@graph": [
+  {"@type": "Organization", "name": "Ignore Me"},
+  {"@type": "JobPosting",
+   "title": "Senior Backend Engineer",
+   "hiringOrganization": {"@type": "Organization", "name": "Acme Fintech"},
+   "datePosted": "2026-11-18",
+   "validThrough": "2026-12-31T00:00:00Z",
+   "employmentType": "FULL_TIME",
+   "jobLocation": [
+     {"@type": "Place", "address": {"addressLocality": "Bengaluru", "addressRegion": "KA", "addressCountry": "IN"}},
+     {"@type": "Place", "address": {"addressLocality": "Pune", "addressCountry": {"@type": "Country", "name": "India"}}}
+   ],
+   "description": "<p>Build streaming pipelines</p>"}
+]}
+</script></head><body><h1>Careers</h1><p>Apply now</p></body></html>"""
+
+
+def test_extract_job_posting_jsonld_reads_structured_fields():
+    from services.page_fetch import extract_job_posting_jsonld
+
+    posting = extract_job_posting_jsonld(_JSONLD_PAGE)
+    assert posting is not None
+    assert posting["title"] == "Senior Backend Engineer"
+    assert posting["company"] == "Acme Fintech"
+    assert posting["date_posted"] == "2026-11-18"
+    assert posting["locations"] == ["Bengaluru, KA, IN", "Pune, India"]
+    assert posting["remote"] is False
+
+
+def test_extract_job_posting_jsonld_detects_remote():
+    from services.page_fetch import extract_job_posting_jsonld
+
+    raw = (
+        '<script type="application/ld+json">'
+        '{"@type": "JobPosting", "title": "Python Lead", "jobLocationType": "TELECOMMUTE",'
+        ' "applicantLocationRequirements": {"@type": "Country", "name": "India"}}'
+        "</script>"
+    )
+    posting = extract_job_posting_jsonld(raw)
+    assert posting["remote"] is True
+    assert posting["locations"] == ["India"]
+
+
+def test_extract_job_posting_jsonld_ignores_bad_json_and_non_jobs():
+    from services.page_fetch import extract_job_posting_jsonld
+
+    raw = (
+        '<script type="application/ld+json">{not json</script>'
+        '<script type="application/ld+json">{"@type": "WebSite", "name": "x"}</script>'
+    )
+    assert extract_job_posting_jsonld(raw) is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_page_keeps_jsonld_job_data(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        headers = {"content-type": "text/html"}
+        text = _JSONLD_PAGE
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url):
+            return FakeResponse()
+
+    monkeypatch.setattr("services.page_fetch.httpx.AsyncClient", lambda **kwargs: FakeClient())
+    text = await fetch_page_text("https://boards.greenhouse.io/acme/jobs/1")
+    assert text.startswith("STRUCTURED JOB DATA")
+    assert "Acme Fintech" in text
+    assert "Bengaluru" in text
+    assert "2026-11-18" in text
