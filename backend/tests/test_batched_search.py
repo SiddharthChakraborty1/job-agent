@@ -120,9 +120,9 @@ async def test_extract_jobs_parses_valid_json():
     ]
     raw = """[
       {
+        "hit_id": 0,
         "job_title": "Backend Engineer",
         "company_name": "Foo",
-        "job_url": "https://www.hirist.com/j/1",
         "organisation_tier": "startup",
         "description": "Python backend role in Bangalore.",
         "posted_date": null
@@ -145,16 +145,16 @@ async def test_extract_jobs_drops_stale_posted_dates():
     hits = [
         SearchHit(
             url="https://www.hirist.com/j/2",
-            title="Engineer",
+            title="Engineer - Foo",
             snippet="Role",
             date="2 days ago",
         )
     ]
     raw = """[
       {
+        "hit_id": 0,
         "job_title": "Engineer",
         "company_name": "Foo",
-        "job_url": "https://www.hirist.com/j/2",
         "organisation_tier": "startup",
         "description": "Role",
         "posted_date": "2023-08-10"
