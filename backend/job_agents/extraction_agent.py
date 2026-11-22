@@ -24,7 +24,11 @@ Each input item has: url, title, snippet, optional date (from Google/Serper), an
 
 Rules:
 - Only include real job postings — not company homepages, blogs, category pages, or login walls
-- Skip listings clearly outside India with no India office or remote-India option
+- Do not skip listings because of location; report location faithfully (filtering happens in code)
+- location: city or cities as listed (join multiple with " | ", add "Remote" if remote); null if unknown
+- country: "India" if ANY listed location is in India or the role is remote and open to India;
+  otherwise the country name as stated (e.g. "United States"); null if unknown. Never guess
+- remote: true if fully remote, false if onsite/hybrid stated, null if unknown
 - If page_text starts with "STRUCTURED JOB DATA", treat those fields (title, company, locations, date posted) as authoritative over the snippet
 - job_url must copy the input url exactly
 - company_name: extract from title, snippet, or page_text; avoid using the job board name as the company
@@ -37,7 +41,7 @@ Rules:
   - If the only year you see is clearly older than the last ~45 days relative to TODAY, use null
 
 Return ONLY a JSON array of at most 50 objects with fields:
-job_title, company_name, job_url, organisation_tier, description, posted_date
+job_title, company_name, job_url, organisation_tier, description, posted_date, location, country, remote
 
 No markdown, no explanation."""
 

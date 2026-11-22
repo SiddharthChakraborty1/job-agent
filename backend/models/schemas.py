@@ -16,6 +16,10 @@ class JobResult(BaseModel):
     organisation_tier: str  # "startup" | "midlevel" | "enterprise"
     description: str = Field(max_length=300)
     posted_date: Optional[date] = None
+    # Extracted per posting; filtered in code (services/location_filter.py).
+    location: Optional[str] = None  # e.g. "Bengaluru" or "Pune | Remote"
+    country: Optional[str] = None  # "India" if any listed location is in India
+    remote: Optional[bool] = None
 
     @field_validator("description", mode="before")
     @classmethod

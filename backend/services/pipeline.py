@@ -8,6 +8,7 @@ from models.schemas import JobResult, PipelineResponse, UnscoredJobResult, Valid
 from services.batched_search import run_batched_search
 from services.company_tier import classify_company_tiers
 from services.deduplicator import deduplicate
+from services.location_filter import filter_by_location
 from services.skill_gaps import aggregate_skill_gaps
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,12 @@ async def run_pipeline(
     # Step 3: Deduplicate
     await progress_cb("Deduplicating results...")
     all_jobs = deduplicate(all_jobs)
+
+    # Step 3b: Drop jobs whose extracted country is outside India (unknown is kept)
+    before = len(all_jobs)
+    all_jobs = filter_by_location(all_jobs)
+    if before and not all_jobs:
+        warnings.append("All found jobs were located outside India.")
 
     # Step 4: Label companies by what they are, not a search guess
     await progress_cb("Classifying company tiers...")

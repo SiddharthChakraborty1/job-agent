@@ -15,7 +15,7 @@ from services.serper import search_dork
 logger = logging.getLogger(__name__)
 
 MAX_DORKS = 10
-MAX_URLS_TO_FETCH = 20
+MAX_URLS_TO_FETCH = 40
 SERPER_CONCURRENCY = 6
 FETCH_CONCURRENCY = 8
 
