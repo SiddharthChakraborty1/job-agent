@@ -8,19 +8,24 @@ from models.schemas import JobResult, PipelineResponse, UnscoredJobResult, Valid
 from services.batched_search import run_batched_search
 from services.company_tier import classify_company_tiers
 from services.deduplicator import deduplicate
+from services.location_filter import filter_by_location
 from services.skill_gaps import aggregate_skill_gaps
 
 logger = logging.getLogger(__name__)
 
 
 def sort_validated_jobs(jobs: list[ValidatedJobResult]) -> list[ValidatedJobResult]:
-    """Most recent first; highest score first on the same date. Undated jobs last."""
+    """Best fit first. Date only breaks ties (newer first, undated last).
+
+    Sorting date-first meant a 30-score job posted today outranked a 90-score job
+    posted yesterday, so the top 10 was "newest 10", not "best 10".
+    """
     return sorted(
         jobs,
         key=lambda r: (
+            r.alignment_score,
             r.posted_date is not None,
             r.posted_date or date.min,
-            r.alignment_score,
         ),
         reverse=True,
     )
@@ -65,6 +70,12 @@ async def run_pipeline(
     # Step 3: Deduplicate
     await progress_cb("Deduplicating results...")
     all_jobs = deduplicate(all_jobs)
+
+    # Step 3b: Drop jobs whose extracted country is outside India (unknown is kept)
+    before = len(all_jobs)
+    all_jobs = filter_by_location(all_jobs)
+    if before and not all_jobs:
+        warnings.append("All found jobs were located outside India.")
 
     # Step 4: Label companies by what they are, not a search guess
     await progress_cb("Classifying company tiers...")

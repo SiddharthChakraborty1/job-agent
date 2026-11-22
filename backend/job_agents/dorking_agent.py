@@ -8,13 +8,13 @@ from job_agents.parsing import parse_json_list
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert job search strategist focused on the INDIAN job market. Given a candidate's resume, produce between 5 and 15 Google dorking queries to find relevant job postings in India.
+SYSTEM_PROMPT = """You are an expert job search strategist focused on the INDIAN job market. Given a candidate's resume, produce between 10 and 15 Google dorking queries to find relevant job postings in India.
 
 These dorks are executed as-is on Google via Serper, which honours site:, intitle:, inurl:, OR, AND, and quoted phrases. Do not write natural-language questions.
 
 Geography (mandatory):
 - Every query MUST target India. Include at least one of: India, Indian city names (Bangalore, Bengaluru, Mumbai, Hyderabad, Pune, Delhi, Gurgaon, Noida, Chennai, Kolkata, Remote India), or "work from home India".
-- Do NOT target US/EU job boards (greenhouse.io, jobs.lever.co, ashbyhq.com, wellfound.com) unless the resume explicitly asks for relocation abroad.
+- Company career platforms and startup boards (listed below) host roles worldwide, including many Indian product companies and global companies with India offices. Use them, but every query on them MUST include an Indian city, "India", or "Remote" so results stay India-relevant.
 
 Preferred Indian job portals (use site: for each; spread queries across them):
 - naukri.com — largest Indian job board
@@ -28,6 +28,21 @@ Preferred Indian job portals (use site: for each; spread queries across them):
 - foundit.in — enterprise and mid-level (formerly Monster India)
 - timesjobs.com — broad Indian market
 
+Company career platforms (product companies, startups and global tech centres in India;
+every query on these MUST include an Indian city, "India", or "Remote"):
+- jobs.lever.co
+- boards.greenhouse.io OR job-boards.greenhouse.io
+- jobs.ashbyhq.com
+- myworkdayjobs.com — global companies' India tech centres (GCCs); use site:myworkdayjobs.com
+- jobs.smartrecruiters.com
+- apply.workable.com
+- keka.com/careers/jobdetails — Indian startups and mid-size product companies
+- zohorecruit.com OR zohorecruit.in — Indian SMBs and product companies
+
+Startup boards (India and remote-India roles; still add an India location term):
+- wellfound.com/jobs
+- workatastartup.com/jobs — YC startups, many remote-India roles
+
 Rules:
 - Each query MUST use at least one operator: site:, intitle:, inurl:, after:, OR, AND, "quoted phrases"
 - At least 4 queries MUST use site: targeting the preferred portals above (rotate across naukri, linkedin, instahyre, hirist, indeed.co.in)
@@ -37,7 +52,9 @@ Rules:
 - Spread dorks across the preferred cities rather than repeating a single city
 - Else if the resume mentions a city, prioritise that city; otherwise use Bangalore, Mumbai, or Hyderabad
 - Use the after: operator with the cutoff date supplied in the request; never guess a date
-- Do NOT use generic US-centric boards (Greenhouse, Lever, Ashby, Wellfound, Y Combinator, Workday)
+- Include at least 4 queries on company career platforms, spread across different ones (e.g. Lever, Greenhouse, Workday, Keka, SmartRecruiters), each with an India location term
+- Include at least 1 query on a startup board (wellfound.com/jobs or workatastartup.com/jobs)
+- Combine platforms with OR inside one query when useful, e.g. (site:jobs.lever.co OR site:jobs.ashbyhq.com)
 
 Return ONLY a valid JSON array of strings. No explanation, no markdown, no code fences. Example:
 ["site:naukri.com \\"Software Engineer\\" Python Bangalore after:<cutoff>", "site:instahyre.com \\"backend engineer\\" India after:<cutoff>", "site:linkedin.com/jobs \\"Full Stack Developer\\" Hyderabad after:<cutoff>"]"""
@@ -69,8 +86,11 @@ def build_dork_prompt(resume_text: str, preferred_cities: list[str] | None = Non
     return (
         f"Today's date is {date.today().strftime('%Y-%m-%d')}. "
         f"Use after:{cutoff} in queries that filter by recency.\n"
-        "Target India only. Prefer naukri.com, linkedin.com/jobs, instahyre.com, "
-        "hirist.com, and indeed.co.in.\n"
+        "Target roles located in India or remote-India. Use the Indian portals "
+        "(naukri.com, linkedin.com/jobs, instahyre.com, hirist.com, indeed.co.in) "
+        "company career platforms (Lever, Greenhouse, Ashby, Workday, SmartRecruiters, "
+        "Workable, Keka, Zoho Recruit) and startup boards (Wellfound, Work at a Startup), "
+        "always with an India location term.\n"
         f"{location_line}\n"
         f"RESUME:\n{resume_text}"
     )

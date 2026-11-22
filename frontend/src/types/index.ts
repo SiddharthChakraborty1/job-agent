@@ -5,6 +5,9 @@ export interface JobResult {
   organisation_tier: 'startup' | 'midlevel' | 'enterprise';
   description: string;
   posted_date: string | null; // ISO date string or null
+  location?: string | null;
+  country?: string | null;
+  remote?: boolean | null;
 }
 
 export interface ValidatedJobResult extends JobResult {
@@ -14,7 +17,7 @@ export interface ValidatedJobResult extends JobResult {
   missing_skills?: string[];
 }
 
-export interface UnscoredJobResult extends JobResult {}
+export type UnscoredJobResult = JobResult;
 
 export interface SkillGap {
   skill: string;

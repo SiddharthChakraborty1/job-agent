@@ -43,16 +43,34 @@ def _scored(url: str, score: int, posted: date | None) -> ValidatedJobResult:
     )
 
 
-def test_validated_jobs_sort_recent_high_score_first():
-    older_high = _scored("https://example.com/a", 95, date(2026, 7, 1))
-    newer_low = _scored("https://example.com/b", 40, date(2026, 8, 15))
-    newer_high = _scored("https://example.com/c", 90, date(2026, 8, 15))
-    undated = _scored("https://example.com/d", 99, None)
+def test_validated_jobs_sort_best_fit_first():
+    """A strong fit posted yesterday must outrank a weak fit posted today."""
+    weak_today = _scored("https://example.com/weak", 30, date(2026, 8, 15))
+    strong_yesterday = _scored("https://example.com/strong", 90, date(2026, 8, 14))
 
-    ordered = sort_validated_jobs([older_high, undated, newer_low, newer_high])
+    ordered = sort_validated_jobs([weak_today, strong_yesterday])
     assert [job.job_url for job in ordered] == [
-        newer_high.job_url,
-        newer_low.job_url,
-        older_high.job_url,
+        strong_yesterday.job_url,
+        weak_today.job_url,
+    ]
+
+
+def test_validated_jobs_same_score_newer_first_undated_last():
+    older = _scored("https://example.com/older", 80, date(2026, 7, 1))
+    newer = _scored("https://example.com/newer", 80, date(2026, 8, 15))
+    undated = _scored("https://example.com/undated", 80, None)
+
+    ordered = sort_validated_jobs([undated, older, newer])
+    assert [job.job_url for job in ordered] == [
+        newer.job_url,
+        older.job_url,
         undated.job_url,
     ]
+
+
+def test_undated_strong_fit_beats_dated_weak_fit():
+    undated_strong = _scored("https://example.com/undated", 95, None)
+    dated_weak = _scored("https://example.com/dated", 40, date(2026, 8, 15))
+
+    ordered = sort_validated_jobs([dated_weak, undated_strong])
+    assert ordered[0].job_url == undated_strong.job_url

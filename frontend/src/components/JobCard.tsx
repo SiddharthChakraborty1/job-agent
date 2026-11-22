@@ -258,6 +258,17 @@ export function JobCard(props: JobCardProps) {
                   component="span"
                   sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }}
                 />
+                {job.location && (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      {job.location}
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }}
+                    />
+                  </>
+                )}
                 <Typography variant="body2" color="text.secondary">
                   {relativeDate(job.posted_date)}
                 </Typography>
